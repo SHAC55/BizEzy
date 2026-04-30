@@ -1,16 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Alert,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
 import { archiveCustomer, fetchCustomer, deleteCustomer } from "../lib/api";
 import { queryKeys } from "../lib/query";
@@ -18,7 +12,7 @@ import { useAuth } from "../providers/AuthProvider";
 import type { CustomerDetail } from "../types/customer";
 import type { AppRoute } from "../types/navigation";
 
-type CustomerDetailPageProps = {
+type Props = {
   customerId: string;
   onBack: () => void;
   onEdit: () => void;
@@ -26,36 +20,25 @@ type CustomerDetailPageProps = {
   onNavigate: (route: AppRoute) => void;
 };
 
-const formatCurrency = (value: number) =>
-  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+type IconName = ComponentProps<typeof MaterialIcons>["name"];
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+const fmt = (v: number) => `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+const fmtDate = (v: string) => new Date(v).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const fmtShort = (v: string) => new Date(v).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+const initials = (n: string) => n.split(" ").map((p) => p[0]?.toUpperCase() || "").join("").slice(0, 2);
 
-const initialsFor = (name: string) =>
-  name
-    .split(" ")
-    .map((p) => p[0]?.toUpperCase() || "")
-    .join("")
-    .slice(0, 2);
+const COLORS = [
+  { bg: "#6366F1", light: "#EEF2FF" }, { bg: "#0EA5E9", light: "#E0F2FE" },
+  { bg: "#F59E0B", light: "#FEF3C7" }, { bg: "#10B981", light: "#ECFDF5" },
+  { bg: "#EC4899", light: "#FCE7F3" }, { bg: "#8B5CF6", light: "#F5F3FF" },
+];
+const avatarColor = (n: string) => COLORS[n.charCodeAt(0) % COLORS.length];
 
-export const CustomerDetailPage = ({
-  customerId,
-  onBack,
-  onEdit,
-  onNavigate,
-  onOpenSale,
-}: CustomerDetailPageProps) => {
+export const CustomerDetailPage = ({ customerId, onBack, onEdit, onNavigate, onOpenSale }: Props) => {
   const { session } = useAuth();
-  const queryClient = useQueryClient();
-
+  const qc = useQueryClient();
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -63,18 +46,11 @@ export const CustomerDetailPage = ({
 
   const load = async (refresh = false) => {
     const token = session?.tokens.accessToken;
-
-    if (!token) {
-      setError("Session expired.");
-      return;
-    }
-
+    if (!token) { setError("Session expired."); return; }
     refresh ? setIsRefreshing(true) : setIsLoading(true);
-
     try {
       setError(null);
-      const data = await fetchCustomer(token, customerId);
-      setCustomer(data);
+      setCustomer(await fetchCustomer(token, customerId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
@@ -83,322 +59,321 @@ export const CustomerDetailPage = ({
     }
   };
 
-  useEffect(() => {
-    load();
-  }, [customerId]);
+  useEffect(() => { load(); }, [customerId]);
 
   const handleArchive = () => {
     const isArchived = !!customer?.archivedAt;
-    Alert.alert(
-      isArchived ? "Unarchive Customer" : "Archive Customer",
-      isArchived ? "This customer will be restored to your active list." : "This customer will be archived and hidden from your active list.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: isArchived ? "Unarchive" : "Archive",
-          style: isArchived ? "default" : "destructive",
-          onPress: async () => {
-            const token = session?.tokens.accessToken;
-            if (!token) return;
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            try {
-              setIsArchiving(true);
-              await archiveCustomer(token, customerId);
-              await Promise.all([
-                queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.customers.detail(customerId) }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.sales.all }),
-              ]);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Toast.show({ type: "success", text1: isArchived ? "Customer Unarchived" : "Customer Archived" });
-              load();
-            } catch (err) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              const msg = err instanceof Error ? err.message : "Failed to toggle archive";
-              Toast.show({ type: "error", text1: "Action Failed", text2: msg });
-            } finally {
-              setIsArchiving(false);
-            }
-          },
+    Alert.alert(isArchived ? "Unarchive" : "Archive", isArchived ? "Restore this customer?" : "Archive this customer?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: isArchived ? "Unarchive" : "Archive", style: isArchived ? "default" : "destructive",
+        onPress: async () => {
+          const token = session?.tokens.accessToken;
+          if (!token) return;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setIsArchiving(true);
+          try {
+            await archiveCustomer(token, customerId);
+            await Promise.all([
+              qc.invalidateQueries({ queryKey: queryKeys.customers.all }),
+              qc.invalidateQueries({ queryKey: queryKeys.customers.detail(customerId) }),
+              qc.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+            ]);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Toast.show({ type: "success", text1: isArchived ? "Unarchived" : "Archived" });
+            load();
+          } catch (err) {
+            Toast.show({ type: "error", text1: "Failed", text2: err instanceof Error ? err.message : "" });
+          } finally { setIsArchiving(false); }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Customer",
-      "Are you sure you want to completely delete this customer? This action cannot be undone. Note: You cannot delete a customer if they have existing sales.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            const token = session?.tokens.accessToken;
-            if (!token) return;
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            try {
-              setIsDeleting(true);
-              await deleteCustomer(token, customerId);
-              await Promise.all([
-                queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
-              ]);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Toast.show({ type: "success", text1: "Customer Deleted" });
-              onBack();
-            } catch (err) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              const msg = err instanceof Error ? err.message : "Failed to delete customer";
-              Toast.show({ type: "error", text1: "Delete Failed", text2: msg });
-            } finally {
-              setIsDeleting(false);
-            }
-          },
+    Alert.alert("Delete Customer", "This cannot be undone. Customers with sales cannot be deleted.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive",
+        onPress: async () => {
+          const token = session?.tokens.accessToken;
+          if (!token) return;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          setIsDeleting(true);
+          try {
+            await deleteCustomer(token, customerId);
+            await qc.invalidateQueries({ queryKey: queryKeys.customers.all });
+            await qc.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Toast.show({ type: "success", text1: "Customer Deleted" });
+            onBack();
+          } catch (err) {
+            Toast.show({ type: "error", text1: "Delete Failed", text2: err instanceof Error ? err.message : "" });
+          } finally { setIsDeleting(false); }
         },
-      ],
-    );
+      },
+    ]);
   };
 
+  const c = avatarColor(customer?.name ?? "U");
+  const cleared = (customer?.due ?? 0) <= 0;
+  const paidPct = customer ? (customer.totalInvoiced > 0 ? Math.round((customer.totalPayment / customer.totalInvoiced) * 100) : 100) : 0;
+
   return (
-    <AppLayout
-      currentRoute="customers"
-      onNavigate={onNavigate}
-      title="Customer Detail"
-      subtitle="Overview & transaction history"
-    >
+    <View className="flex-1 bg-[#F8FAFC]">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pb-28"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => load(true)}
-          />
-        }
+        contentContainerClassName="pb-32"
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => load(true)} />}
       >
-        {/* Top Actions */}
-        <View className="mt-4 mb-4 flex-row justify-between items-center">
-          <TopBtn icon="arrow-back" label="Back" onPress={onBack} />
-
-          <View className="flex-row gap-2">
-            <TopBtn
-              icon="archive"
-              label={isArchiving ? "..." : (customer?.archivedAt ? "Unarchive" : "Archive")}
-              warn={!customer?.archivedAt}
-              dark={!!customer?.archivedAt}
-              onPress={handleArchive}
-            />
-
-            <TopBtn icon="delete-outline" label={isDeleting ? "..." : "Delete"} warn onPress={handleDelete} />
-            <TopBtn icon="edit" label="Edit" dark onPress={onEdit} />
+        {/* ─── Hero ─── */}
+        <View className="bg-slate-900 px-5 pb-10 pt-14">
+          <View className="flex-row items-center justify-between mb-8">
+            <Pressable onPress={onBack} className="h-10 w-10 rounded-xl bg-white/10 items-center justify-center">
+              <MaterialIcons name="arrow-back" size={20} color="#fff" />
+            </Pressable>
+            <Text className="text-[17px] font-bold text-white">Customer</Text>
+            <Pressable onPress={onEdit} className="h-10 w-10 rounded-xl bg-white/10 items-center justify-center">
+              <MaterialIcons name="edit" size={18} color="#fff" />
+            </Pressable>
           </View>
+
+          {isLoading ? (
+            <View className="items-center py-10">
+              <ActivityIndicator size="large" color="#818CF8" />
+              <Text className="text-slate-400 text-[13px] mt-3">Loading…</Text>
+            </View>
+          ) : error || !customer ? (
+            <View className="items-center py-10">
+              <MaterialIcons name="error-outline" size={32} color="#F87171" />
+              <Text className="text-red-400 text-[13px] mt-2">{error || "Not found"}</Text>
+            </View>
+          ) : (
+            <>
+              <View className="items-center">
+                <View className="h-20 w-20 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: c.bg }}>
+                  <Text className="text-[28px] font-bold text-white">{initials(customer.name)}</Text>
+                </View>
+                <View className="flex-row items-center gap-2 mb-1">
+                  <Text className="text-[22px] font-bold text-white tracking-tight">{customer.name}</Text>
+                  {customer.archivedAt && (
+                    <View className="bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
+                      <Text className="text-amber-400 text-[9px] font-bold uppercase">Archived</Text>
+                    </View>
+                  )}
+                </View>
+                <Text className="text-[13px] text-slate-400">{customer.mobile}</Text>
+                <View className="flex-row items-center gap-2 mt-2">
+                  <View className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${cleared ? "bg-emerald-500/20" : "bg-red-500/20"}`}>
+                    <View className={`w-1.5 h-1.5 rounded-full ${cleared ? "bg-emerald-400" : "bg-red-400"}`} />
+                    <Text className={`text-[11px] font-bold ${cleared ? "text-emerald-400" : "text-red-400"}`}>
+                      {cleared ? "All Cleared" : `${fmt(customer.due)} Due`}
+                    </Text>
+                  </View>
+                  <View className="bg-white/10 rounded-full px-3 py-1.5">
+                    <Text className="text-[11px] font-semibold text-slate-400">
+                      Since {fmtShort(customer.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
-        {isLoading ? (
-          <Text className="py-20 text-center text-black/40">
-            Loading customer...
-          </Text>
-        ) : error || !customer ? (
-          <Text className="py-20 text-center text-red-500">
-            {error || "Customer not found"}
-          </Text>
-        ) : (
-          <>
-            {/* Hero */}
-            <View className="rounded-[28px] bg-black px-5 py-5">
-              <View className="flex-row items-center gap-4">
-                <View className="h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
-                  <Text className="text-[16px] font-bold text-white">
-                    {initialsFor(customer.name)}
-                  </Text>
+        {customer && !isLoading && !error && (
+          <View className="px-4 -mt-5">
+            {/* ─── Financial Summary ─── */}
+            <Animated.View entering={FadeInDown.duration(400).delay(0)}>
+              <View
+                className="bg-white rounded-2xl border border-slate-100 overflow-hidden mb-4"
+                style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4 }}
+              >
+                <View className="flex-row">
+                  <MetricBox icon="payments" label="Revenue" value={fmt(customer.totalPayment)} color="#10B981" bg="#ECFDF5" />
+                  <View className="w-px bg-slate-100" />
+                  <MetricBox icon="receipt" label="Invoiced" value={fmt(customer.totalInvoiced)} color="#6366F1" bg="#EEF2FF" />
+                  <View className="w-px bg-slate-100" />
+                  <MetricBox icon="shopping-bag" label="Orders" value={String(customer.orders)} color="#F59E0B" bg="#FEF3C7" />
                 </View>
 
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-[21px] font-bold text-white">
-                      {customer.name}
+                {/* Payment progress */}
+                <View className="px-4 py-3 border-t border-slate-50">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-[11px] font-semibold text-slate-400">Payment Progress</Text>
+                    <Text className="text-[11px] font-bold" style={{ color: paidPct >= 80 ? "#10B981" : paidPct >= 50 ? "#F59E0B" : "#EF4444" }}>
+                      {paidPct}% collected
                     </Text>
-                    {customer.archivedAt && (
-                      <View className="bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
-                        <Text className="text-amber-400 text-[10px] font-bold tracking-widest uppercase">Archived</Text>
-                      </View>
-                    )}
                   </View>
-
-                  <Text className="mt-1 text-[13px] text-white/55">
-                    {customer.mobile}
-                  </Text>
+                  <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(paidPct, 100)}%`,
+                        backgroundColor: paidPct >= 80 ? "#10B981" : paidPct >= 50 ? "#F59E0B" : "#EF4444",
+                      }}
+                    />
+                  </View>
                 </View>
               </View>
+            </Animated.View>
 
-              <View className="mt-5 flex-row gap-3">
-                <MetricCard
-                  label="Revenue"
-                  value={formatCurrency(customer.totalPayment)}
-                  green
-                />
-
-                <MetricCard
-                  label="Due"
-                  value={formatCurrency(customer.due)}
-                  red
-                />
-              </View>
-            </View>
-
-            {/* Info */}
-            <View className="mt-5 rounded-[28px] border border-black/10 bg-white p-5">
-              <SectionTitle title="Customer Info" />
-
-              <View className="flex-row gap-3 mb-3">
-                <View className="flex-1">
-                  <InfoRow icon="phone" label="Phone" value={customer.mobile} />
+            {/* ─── Contact Info ─── */}
+            <Animated.View entering={FadeInDown.duration(400).delay(80)}>
+              <SectionLabel icon="info" color="#6366F1" bg="#EEF2FF" label="Contact Info" />
+              <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
+                <View className="flex-row gap-3 mb-3">
+                  <View className="flex-1">
+                    <InfoCell icon="phone" label="Phone" value={customer.mobile} />
+                  </View>
+                  <View className="flex-1">
+                    <InfoCell icon="mail" label="Email" value={customer.email || "Not provided"} muted={!customer.email} />
+                  </View>
                 </View>
-
-                <View className="flex-1">
-                  <InfoRow
-                    icon="mail"
-                    label="Email"
-                    value={customer.email || "Not provided"}
-                  />
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <InfoCell icon="location-on" label="Address" value={customer.address || "Not provided"} muted={!customer.address} />
+                  </View>
+                  <View className="flex-1">
+                    <InfoCell icon="account-balance-wallet" label="Opening Bal." value={fmt(customer.openingBalance)} />
+                  </View>
                 </View>
+                {customer.notes && (
+                  <View className="mt-3">
+                    <InfoCell icon="description" label="Notes" value={customer.notes} />
+                  </View>
+                )}
               </View>
+            </Animated.View>
 
-              <View className="flex-row gap-3 mb-3">
-                <View className="flex-1">
-                  <InfoRow
-                    icon="location-on"
-                    label="Address"
-                    value={customer.address || "Not provided"}
-                  />
-                </View>
-
-                <View className="flex-1">
-                  <InfoRow
-                    icon="calendar-month"
-                    label="Joined"
-                    value={formatDate(customer.createdAt)}
-                  />
-                </View>
-              </View>
-
-              {customer.notes ? (
-                <InfoRow
-                  icon="description"
-                  label="Notes"
-                  value={customer.notes}
-                />
-              ) : null}
-            </View>
-
-            {/* Sales */}
-            <View className="mt-5 rounded-[28px] overflow-hidden border border-black/10 bg-white">
-              <View className="border-b border-black/5 px-5 py-4">
-                <Text className="text-[16px] font-semibold text-black">
-                  Sales History
-                </Text>
-              </View>
-
-              {customer.sales.length === 0 ? (
-                <Text className="py-10 text-center text-black/35">
-                  No sales yet
-                </Text>
-              ) : (
-                customer.sales.map((sale, index) => (
-                  <Pressable
-                    key={sale.id}
-                    onPress={() => onOpenSale(sale.id)}
-                    android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-                    className={`px-5 py-4 ${
-                      index < customer.sales.length - 1
-                        ? "border-b border-black/5"
-                        : ""
-                    }`}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View>
-                        <Text className="font-semibold text-black">
-                          Sale #{sale.id.slice(0, 8)}
-                        </Text>
-
-                        <Text className="mt-1 text-[12px] text-black/35">
-                          {formatDate(sale.createdAt)}
-                        </Text>
-                      </View>
-
-                      <View className="items-end">
-                        <Text className="font-bold text-black">
-                          {formatCurrency(sale.totalAmount)}
-                        </Text>
-
-                        <Text className="mt-1 text-[12px] text-red-500">
-                          Due {formatCurrency(sale.dueAmount)}
-                        </Text>
-                      </View>
+            {/* ─── Sales History ─── */}
+            <Animated.View entering={FadeInDown.duration(400).delay(160)}>
+              <SectionLabel icon="receipt-long" color="#F59E0B" bg="#FEF3C7" label={`Sales History (${customer.sales.length})`} />
+              <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
+                {customer.sales.length === 0 ? (
+                  <View className="items-center py-12">
+                    <View className="h-12 w-12 rounded-2xl bg-slate-50 items-center justify-center mb-2">
+                      <MaterialIcons name="receipt-long" size={22} color="#94A3B8" />
                     </View>
-                  </Pressable>
-                ))
-              )}
-            </View>
-          </>
+                    <Text className="text-[13px] font-medium text-slate-400">No sales yet</Text>
+                  </View>
+                ) : (
+                  customer.sales.map((sale, i) => {
+                    const saleDue = sale.dueAmount > 0;
+                    const isLast = i === customer.sales.length - 1;
+                    return (
+                      <Pressable
+                        key={sale.id}
+                        onPress={() => onOpenSale(sale.id)}
+                        android_ripple={{ color: "rgba(0,0,0,0.04)", borderless: false }}
+                        className={`px-4 py-3.5 active:bg-slate-50 ${!isLast ? "border-b border-slate-50" : ""}`}
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <View className={`h-9 w-9 rounded-xl items-center justify-center ${saleDue ? "bg-red-50" : "bg-emerald-50"}`}>
+                            <MaterialIcons name={saleDue ? "schedule" : "check-circle"} size={16} color={saleDue ? "#EF4444" : "#10B981"} />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-[13px] font-semibold text-slate-800">
+                              #{sale.id.slice(0, 8)}
+                            </Text>
+                            <Text className="text-[10px] text-slate-400 mt-0.5">{fmtDate(sale.createdAt)}</Text>
+                          </View>
+                          <View className="items-end">
+                            <Text className="text-[14px] font-bold text-slate-900">{fmt(sale.totalAmount)}</Text>
+                            {saleDue ? (
+                              <Text className="text-[10px] font-semibold text-red-500 mt-0.5">Due {fmt(sale.dueAmount)}</Text>
+                            ) : (
+                              <Text className="text-[10px] font-semibold text-emerald-600 mt-0.5">Paid</Text>
+                            )}
+                          </View>
+                          <MaterialIcons name="chevron-right" size={16} color="#D4D4D8" />
+                        </View>
+                      </Pressable>
+                    );
+                  })
+                )}
+              </View>
+            </Animated.View>
+
+            {/* ─── Actions ─── */}
+            <Animated.View entering={FadeInDown.duration(400).delay(240)}>
+              <SectionLabel icon="settings" color="#64748B" bg="#F1F5F9" label="Actions" />
+              <View className="gap-3 mb-6">
+                <Pressable
+                  onPress={handleArchive}
+                  disabled={isArchiving}
+                  android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+                  className="flex-row items-center gap-3 bg-white rounded-2xl border border-slate-100 px-4 py-4"
+                  style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 }}
+                >
+                  <View className="h-10 w-10 rounded-xl bg-amber-50 items-center justify-center">
+                    <MaterialIcons name={customer.archivedAt ? "unarchive" : "archive"} size={18} color="#F59E0B" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-[14px] font-semibold text-slate-800">
+                      {isArchiving ? "Processing..." : customer.archivedAt ? "Unarchive Customer" : "Archive Customer"}
+                    </Text>
+                    <Text className="text-[11px] text-slate-400 mt-0.5">
+                      {customer.archivedAt ? "Restore to active list" : "Hide from active list"}
+                    </Text>
+                  </View>
+                  {isArchiving ? <ActivityIndicator size={16} color="#F59E0B" /> : <MaterialIcons name="chevron-right" size={18} color="#D4D4D8" />}
+                </Pressable>
+
+                <Pressable
+                  onPress={handleDelete}
+                  disabled={isDeleting}
+                  android_ripple={{ color: "rgba(239,68,68,0.08)", borderless: false }}
+                  className="flex-row items-center gap-3 bg-white rounded-2xl border border-red-100 px-4 py-4"
+                >
+                  <View className="h-10 w-10 rounded-xl bg-red-50 items-center justify-center">
+                    <MaterialIcons name="delete-outline" size={18} color="#EF4444" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-[14px] font-semibold text-red-600">
+                      {isDeleting ? "Deleting..." : "Delete Customer"}
+                    </Text>
+                    <Text className="text-[11px] text-slate-400 mt-0.5">Permanently remove this customer</Text>
+                  </View>
+                  {isDeleting ? <ActivityIndicator size={16} color="#EF4444" /> : <MaterialIcons name="chevron-right" size={18} color="#FECACA" />}
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
         )}
       </ScrollView>
-    </AppLayout>
+    </View>
   );
 };
 
-/* Components */
+// ── Sub-components ───────────────────────────────────────────────
 
-const TopBtn = ({ label, icon, dark, warn, onPress }: any) => (
-  <Pressable
-    onPress={onPress}
-    android_ripple={{ color: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)", borderless: false }}
-    className={`flex-row items-center gap-2 rounded-2xl px-4 py-3 ${
-      dark
-        ? "bg-black"
-        : warn
-          ? "bg-yellow-400"
-          : "border border-black/10 bg-white"
-    }`}
-  >
-    <MaterialIcons name={icon} size={18} color={dark ? "#fff" : "#000"} />
-
-    <Text className={`font-medium ${dark ? "text-white" : "text-black"}`}>
-      {label}
-    </Text>
-  </Pressable>
-);
-
-const MetricCard = ({ label, value, red, green }: any) => (
-  <View
-    className={`flex-1 rounded-2xl px-4 py-4 text-black ${
-      red ? "bg-white" : green ? "bg-white" : "bg-white/10"
-    }`}
-  >
-    <Text className="text-[11px] text-black">{label}</Text>
-
-    <Text className="mt-2 text-[18px] font-bold text-black">{value}</Text>
+const MetricBox = ({ icon, label, value, color, bg }: { icon: IconName; label: string; value: string; color: string; bg: string }) => (
+  <View className="flex-1 py-4 px-3 items-center">
+    <View className="h-8 w-8 rounded-lg items-center justify-center mb-2" style={{ backgroundColor: bg }}>
+      <MaterialIcons name={icon} size={15} color={color} />
+    </View>
+    <Text className="text-[15px] font-bold text-slate-900" numberOfLines={1}>{value}</Text>
+    <Text className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-1">{label}</Text>
   </View>
 );
 
-const SectionTitle = ({ title }: { title: string }) => (
-  <Text className="mb-4 text-[16px] font-semibold text-black">{title}</Text>
+const SectionLabel = ({ icon, color, bg, label }: { icon: IconName; color: string; bg: string; label: string }) => (
+  <View className="flex-row items-center gap-2 mb-3 ml-1">
+    <View className="h-6 w-6 rounded-md items-center justify-center" style={{ backgroundColor: bg }}>
+      <MaterialIcons name={icon} size={13} color={color} />
+    </View>
+    <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</Text>
+  </View>
 );
 
-const InfoRow = ({ icon, label, value }: any) => (
-  <View className="rounded-2xl bg-zinc-50 px-4 py-4">
-    <MaterialIcons name={icon} size={18} color="#555" />
-
-    <View className="mt-2">
-      <Text className="text-[11px] uppercase text-black/35">{label}</Text>
-
-      <Text numberOfLines={2} className="mt-1 text-[14px] text-black">
-        {value}
-      </Text>
+const InfoCell = ({ icon, label, value, muted }: { icon: IconName; label: string; value: string; muted?: boolean }) => (
+  <View className="bg-slate-50 rounded-xl px-3.5 py-3">
+    <View className="flex-row items-center gap-2 mb-1.5">
+      <MaterialIcons name={icon} size={14} color={muted ? "#CBD5E1" : "#94A3B8"} />
+      <Text className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">{label}</Text>
     </View>
+    <Text className={`text-[13px] font-medium ${muted ? "text-slate-300 italic" : "text-slate-800"}`} numberOfLines={2}>{value}</Text>
   </View>
 );

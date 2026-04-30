@@ -1,19 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  Text,
-  TextInput,
-  View,
-  ActivityIndicator,
-} from "react-native";
+import { Alert, FlatList, Pressable, RefreshControl, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
 import { SkeletonCustomerRow } from "../components/Skeleton";
 import { archiveCustomer } from "../lib/api";
@@ -30,63 +22,48 @@ type CustomersPageProps = {
   onNavigate: (route: AppRoute) => void;
 };
 
-const formatCurrency = (value: number) =>
-  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+const fmt = (v: number) => `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+const fmtDate = (v: string) => new Date(v).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+const initials = (n: string) => n.split(" ").map((p) => p[0]?.toUpperCase() || "").join("").slice(0, 2);
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
+const AVATAR_COLORS = [
+  { bg: "#EEF2FF", text: "#4338CA" }, { bg: "#FEF3C7", text: "#B45309" },
+  { bg: "#ECFDF5", text: "#065F46" }, { bg: "#FEE2E2", text: "#DC2626" },
+  { bg: "#F5F3FF", text: "#6D28D9" }, { bg: "#E0F2FE", text: "#0369A1" },
+];
+const avatarColor = (n: string) => AVATAR_COLORS[n.charCodeAt(0) % AVATAR_COLORS.length];
 
-const initialsFor = (name: string) =>
-  name
-    .split(" ")
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("")
-    .slice(0, 2);
+const FILTERS = [
+  { key: "all", label: "All", icon: "people" },
+  { key: "pending", label: "Pending", icon: "schedule" },
+  { key: "cleared", label: "Cleared", icon: "check-circle" },
+  { key: "high_due", label: "High Due", icon: "warning" },
+  { key: "archived", label: "Archived", icon: "archive" },
+] as const;
 
-export const CustomersPage = ({
-  onNavigate,
-  onOpenAddCustomer,
-  onOpenCustomer,
-}: CustomersPageProps) => {
+export const CustomersPage = ({ onNavigate, onOpenAddCustomer, onOpenCustomer }: CustomersPageProps) => {
   const { session } = useAuth();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [filterMode, setFilterMode] = useState<
-    "all" | "pending" | "cleared" | "high_due" | "archived"
-  >("all");
-
+  const [filterMode, setFilterMode] = useState<"all" | "pending" | "cleared" | "high_due" | "archived">("all");
   const debouncedSearch = useDebounce(search);
 
-  const {
-    customers,
-    summary,
-    pagination,
-    isLoading,
-    isRefreshing,
-    error,
-    refetch,
-  } = useCustomersData({
-    page,
-    limit: 10,
-    search: debouncedSearch,
+  const { customers, summary, pagination, isLoading, isRefreshing, error, refetch } = useCustomersData({
+    page, limit: 10, search: debouncedSearch,
     dueStatus: filterMode === "archived" ? "all" : filterMode,
     includeArchived: filterMode === "archived",
   });
 
-  const handleArchiveCustomer = (customer: Customer, close: () => void) => {
+  const handleArchive = (customer: Customer, close: () => void) => {
     const isArchived = !!customer.archivedAt;
     Alert.alert(
       isArchived ? "Unarchive Customer" : "Archive Customer",
-      isArchived ? `Restore ${customer.name} to the active list?` : `Archive ${customer.name} and hide them from the active list?`,
+      isArchived ? `Restore ${customer.name}?` : `Archive ${customer.name}?`,
       [
         { text: "Cancel", style: "cancel", onPress: close },
         {
-          text: isArchived ? "Unarchive" : "Archive",
-          style: isArchived ? "default" : "destructive",
+          text: isArchived ? "Unarchive" : "Archive", style: isArchived ? "default" : "destructive",
           onPress: async () => {
             const token = session?.tokens.accessToken;
             if (!token) { close(); return; }
@@ -95,21 +72,16 @@ export const CustomersPage = ({
             try {
               await archiveCustomer(token, customer.id);
               await Promise.all([
-                queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.customers.detail(customer.id) }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
-                queryClient.invalidateQueries({ queryKey: queryKeys.sales.all }),
+                qc.invalidateQueries({ queryKey: queryKeys.customers.all }),
+                qc.invalidateQueries({ queryKey: queryKeys.customers.detail(customer.id) }),
+                qc.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+                qc.invalidateQueries({ queryKey: queryKeys.sales.all }),
               ]);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Toast.show({
-                type: "success",
-                text1: isArchived ? "Customer Unarchived" : "Customer Archived",
-                text2: isArchived ? `${customer.name} restored to active list.` : `${customer.name} moved out of the active list.`,
-              });
+              Toast.show({ type: "success", text1: isArchived ? "Unarchived" : "Archived", text2: `${customer.name} ${isArchived ? "restored" : "archived"}.` });
             } catch (err) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              const msg = err instanceof Error ? err.message : "Failed to toggle archive status";
-              Toast.show({ type: "error", text1: "Action Failed", text2: msg });
+              Toast.show({ type: "error", text1: "Failed", text2: err instanceof Error ? err.message : "" });
             }
           },
         },
@@ -117,178 +89,189 @@ export const CustomersPage = ({
     );
   };
 
+  const collectionRate = summary.totalRevenue > 0 ? Math.round((summary.totalRevenue / (summary.totalRevenue + summary.totalDue)) * 100) : 100;
+
   const ListHeader = () => (
     <>
-      {/* ── Add Button ── */}
-      <Pressable
-        onPress={onOpenAddCustomer}
-        android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: false }}
-        className="mt-3 mb-4 flex-row items-center justify-center gap-2 bg-zinc-900 py-4 rounded-2xl"
-      >
-        <MaterialIcons name="person-add" size={16} color="#fff" />
-        <Text className="text-white font-semibold text-[14px]">Add Customer</Text>
-      </Pressable>
-
-      {/* ── Hero Stats Card ── */}
-      <View className="bg-zinc-900 rounded-[28px] px-5 pt-5 pb-6 mb-4 overflow-hidden">
-        {/* Decorative rings */}
+      {/* ─── Hero Card ─── */}
+      <Animated.View entering={FadeInDown.duration(400).delay(0)}>
         <View
-          className="absolute -right-10 -top-10 w-48 h-48 rounded-full border border-white/5"
-          pointerEvents="none"
-        />
-        <View
-          className="absolute -right-4 -top-4 w-32 h-32 rounded-full border border-white/5"
-          pointerEvents="none"
-        />
+          className="rounded-[24px] overflow-hidden mb-4 mt-1"
+          style={{ backgroundColor: "#0F172A", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 8 }}
+        >
+          <View className="px-5 pt-5 pb-4">
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center gap-2">
+                <View className="h-8 w-8 rounded-lg bg-indigo-500/20 items-center justify-center">
+                  <MaterialIcons name="groups" size={16} color="#818CF8" />
+                </View>
+                <Text className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">Customer Book</Text>
+              </View>
+              <Pressable
+                onPress={onOpenAddCustomer}
+                android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
+                className="flex-row items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5"
+              >
+                <MaterialIcons name="person-add" size={14} color="#E2E8F0" />
+                <Text className="text-[11px] font-bold text-slate-300">Add New</Text>
+              </Pressable>
+            </View>
 
-        <Text className="text-white/40 text-[11px] font-medium tracking-widest uppercase mb-4">
-          Overview
-        </Text>
-
-        <View className="flex-row gap-3">
-          {/* Total customers */}
-          <View className="flex-1 bg-white/8 rounded-2xl px-4 py-3">
-            <Text className="text-white/40 text-[10px] uppercase tracking-widest mb-1">
-              Customers
+            <Text className="text-[34px] font-bold text-white tracking-tight">
+              {summary.totalCustomers}
             </Text>
-            <Text className="text-white text-[26px] font-bold leading-none">
-              {summary.totalCustomers.toLocaleString("en-IN")}
+            <Text className="text-[13px] text-slate-500 mt-1">
+              total customers · {collectionRate}% collection rate
             </Text>
           </View>
 
-          {/* Total due */}
-          <View className="flex-1 bg-white/8 rounded-2xl px-4 py-3">
-            <Text className="text-white/40 text-[10px] uppercase tracking-widest mb-1">
-              Total Due
-            </Text>
-            <Text className="text-red-400 text-[22px] font-bold leading-none">
-              {formatCurrency(summary.totalDue)}
-            </Text>
+          <View className="flex-row border-t border-white/5">
+            <View className="flex-1 py-3.5 px-3 items-center border-r border-white/5">
+              <MaterialIcons name="payments" size={14} color="#34D399" style={{ marginBottom: 4 }} />
+              <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{fmt(summary.totalRevenue)}</Text>
+              <Text className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mt-1">Collected</Text>
+            </View>
+            <View className="flex-1 py-3.5 px-3 items-center border-r border-white/5">
+              <MaterialIcons name="schedule" size={14} color="#F87171" style={{ marginBottom: 4 }} />
+              <Text className="text-[14px] font-bold text-white" numberOfLines={1}>{fmt(summary.totalDue)}</Text>
+              <Text className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mt-1">Outstanding</Text>
+            </View>
+            <View className="flex-1 py-3.5 px-3 items-center">
+              <MaterialIcons name="warning" size={14} color="#FBBF24" style={{ marginBottom: 4 }} />
+              <Text className="text-[14px] font-bold text-white">{summary.pendingCustomers}</Text>
+              <Text className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mt-1">With Dues</Text>
+            </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      {/* ── Search ── */}
-      <View className="flex-row items-center bg-white border border-zinc-200 rounded-2xl px-4 mb-3 overflow-hidden">
-        <MaterialIcons name="search" size={18} color="#a1a1aa" />
-        <TextInput
-          value={search}
-          onChangeText={(v) => { setSearch(v); setPage(1); }}
-          placeholder="Search customers…"
-          placeholderTextColor="#a1a1aa"
-          className="flex-1 py-4 pl-3 text-zinc-900 text-[14px]"
-        />
-        {search.length > 0 && (
-          <Pressable onPress={() => setSearch("")}>
-            <MaterialIcons name="cancel" size={18} color="#a1a1aa" />
-          </Pressable>
-        )}
-      </View>
+      {/* ─── Status Pills ─── */}
+      <Animated.View entering={FadeInDown.duration(400).delay(80)}>
+        <View className="flex-row gap-3 mb-4">
+          <StatusPill icon="check-circle" label="Cleared" count={summary.clearedCustomers} color="#10B981" bg="#ECFDF5" />
+          <StatusPill icon="schedule" label="Pending" count={summary.pendingCustomers} color="#F59E0B" bg="#FEF3C7" />
+        </View>
+      </Animated.View>
 
-      {/* ── Filter Chips ── */}
-      <View className="flex-row flex-wrap gap-2 mb-4">
-        {(["all", "pending", "cleared", "high_due", "archived"] as const).map((item) => (
-          <FilterChip
-            key={item}
-            active={filterMode === item}
-            label={item === "high_due" ? "High Due" : item.charAt(0).toUpperCase() + item.slice(1)}
-            onPress={() => { setFilterMode(item); setPage(1); }}
-          />
-        ))}
-      </View>
+      {/* ─── Search ─── */}
+      <Animated.View entering={FadeInDown.duration(400).delay(160)}>
+        <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
+          <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 gap-2 mb-3">
+            <MaterialIcons name="search" size={17} color="#94A3B8" />
+            <TextInput
+              value={search}
+              onChangeText={(v) => { setSearch(v); setPage(1); }}
+              placeholder="Search by name, mobile, email…"
+              placeholderTextColor="#94A3B8"
+              className="flex-1 text-[14px] text-slate-900"
+            />
+            {search.length > 0 && (
+              <Pressable onPress={() => setSearch("")}>
+                <MaterialIcons name="cancel" size={16} color="#94A3B8" />
+              </Pressable>
+            )}
+          </View>
+          <View className="flex-row flex-wrap gap-2">
+            {FILTERS.map((f) => (
+              <Pressable
+                key={f.key}
+                onPress={() => { setFilterMode(f.key); setPage(1); }}
+                android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
+                className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 border ${filterMode === f.key ? "bg-slate-900 border-slate-900" : "bg-white border-slate-200"}`}
+              >
+                <MaterialIcons name={f.icon as any} size={13} color={filterMode === f.key ? "#fff" : "#94A3B8"} />
+                <Text className={`text-[11px] font-semibold ${filterMode === f.key ? "text-white" : "text-slate-500"}`}>{f.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </Animated.View>
 
-      {/* ── List card top ── */}
-      <View className="bg-white rounded-t-[24px] border border-zinc-100 px-5 py-4 border-b-0">
-        <Text className="text-zinc-900 text-[15px] font-bold">Customers</Text>
-        <Text className="text-zinc-400 text-[12px] mt-0.5">Customer health & dues</Text>
+      {/* ─── List Header ─── */}
+      <View className="flex-row justify-between items-center mb-2 px-1">
+        <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+          {filterMode === "archived" ? "Archived" : "Customers"}
+        </Text>
+        <Text className="text-[11px] text-slate-400">{pagination.total ?? customers.length} results</Text>
       </View>
     </>
   );
 
   const ListEmpty = () => {
-    if (isLoading) {
-      return (
-        <View className="bg-white border-x border-zinc-100">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonCustomerRow key={i} />
-          ))}
+    if (isLoading) return (
+      <View className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+        {Array.from({ length: 5 }).map((_, i) => <SkeletonCustomerRow key={i} />)}
+      </View>
+    );
+    if (error) return (
+      <View className="bg-white rounded-2xl border border-zinc-100 items-center py-14 px-5">
+        <View className="h-12 w-12 rounded-full bg-red-50 items-center justify-center mb-3">
+          <MaterialIcons name="error-outline" size={24} color="#ef4444" />
         </View>
-      );
-    }
-    if (error) {
-      return (
-        <View className="bg-white border-x border-zinc-100 items-center py-16">
-          <MaterialIcons name="error-outline" size={36} color="#ef4444" />
-          <Text className="text-red-500 text-[13px] mt-2 font-medium">{error}</Text>
-        </View>
-      );
-    }
+        <Text className="text-slate-900 font-semibold text-[14px]">Something went wrong</Text>
+        <Text className="text-slate-400 text-[12px] mt-1 text-center">{error}</Text>
+        <Pressable onPress={refetch} className="mt-4 px-5 py-2.5 bg-slate-900 rounded-xl">
+          <Text className="text-white text-[12px] font-semibold">Try Again</Text>
+        </Pressable>
+      </View>
+    );
     return (
-      <View className="bg-white border-x border-zinc-100 items-center py-16">
-        <MaterialIcons name="people-outline" size={36} color="#d4d4d8" />
-        <Text className="text-zinc-400 text-[13px] mt-2">No customers found</Text>
+      <View className="bg-white rounded-2xl border border-zinc-100 items-center py-14 px-5">
+        <View className="h-14 w-14 rounded-2xl bg-slate-50 items-center justify-center mb-3">
+          <MaterialIcons name="people-outline" size={24} color="#94A3B8" />
+        </View>
+        <Text className="text-slate-700 font-semibold text-[14px]">No customers found</Text>
+        <Text className="text-slate-400 text-[12px] mt-1">Try adjusting your search or filters</Text>
       </View>
     );
   };
 
   const ListFooter = () => (
-    <View className="bg-white rounded-b-[24px] border border-zinc-100 border-t-0">
+    <View className="mt-1">
       {!isLoading && !error && pagination.totalPages > 1 && (
-        <View className="flex-row items-center justify-between border-t border-zinc-100 px-5 py-4">
+        <View className="flex-row items-center justify-between py-4">
           <Pressable
             onPress={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
-            className={`rounded-xl px-4 py-2.5 ${page === 1 ? "bg-zinc-100" : "bg-zinc-900"}`}
+            className={`rounded-xl px-4 py-2.5 flex-row items-center gap-1 ${page === 1 ? "bg-slate-100" : "bg-slate-900"}`}
           >
-            <Text className={`text-[12px] font-semibold ${page === 1 ? "text-zinc-400" : "text-white"}`}>
-              Previous
-            </Text>
+            <MaterialIcons name="chevron-left" size={16} color={page === 1 ? "#94A3B8" : "#fff"} />
+            <Text className={`text-[12px] font-semibold ${page === 1 ? "text-slate-400" : "text-white"}`}>Prev</Text>
           </Pressable>
-          <Text className="text-zinc-400 text-[12px]">
-            {page} / {pagination.totalPages}
-          </Text>
+          <Text className="text-[12px] text-slate-400">{page} / {pagination.totalPages}</Text>
           <Pressable
             onPress={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
             disabled={page === pagination.totalPages}
-            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
-            className={`rounded-xl px-4 py-2.5 ${page === pagination.totalPages ? "bg-zinc-100" : "bg-zinc-900"}`}
+            className={`rounded-xl px-4 py-2.5 flex-row items-center gap-1 ${page === pagination.totalPages ? "bg-slate-100" : "bg-slate-900"}`}
           >
-            <Text className={`text-[12px] font-semibold ${page === pagination.totalPages ? "text-zinc-400" : "text-white"}`}>
-              Next
-            </Text>
+            <Text className={`text-[12px] font-semibold ${page === pagination.totalPages ? "text-slate-400" : "text-white"}`}>Next</Text>
+            <MaterialIcons name="chevron-right" size={16} color={page === pagination.totalPages ? "#94A3B8" : "#fff"} />
           </Pressable>
         </View>
       )}
     </View>
   );
 
-  const renderItem = ({
-    item: customer,
-    index,
-  }: {
-    item: Customer;
-    index: number;
-  }) => {
+  const renderItem = ({ item: customer, index }: { item: Customer; index: number }) => {
     const cleared = customer.due <= 0;
+    const isFirst = index === 0;
     const isLast = index === customers.length - 1;
+    const c = avatarColor(customer.name);
 
     return (
       <Swipeable
-        overshootRight={false}
-        friction={2}
-        rightThreshold={36}
+        overshootRight={false} friction={2} rightThreshold={36}
         renderRightActions={(_, __, swipeable) => (
-          <View
-            className={`bg-amber-400 overflow-hidden ${isLast ? "rounded-br-[24px]" : ""}`}
-          >
+          <View className={`overflow-hidden ${customer.archivedAt ? "bg-emerald-500" : "bg-amber-400"} ${isLast ? "rounded-br-2xl" : ""}`}>
             <Pressable
-              onPress={() => handleArchiveCustomer(customer, () => swipeable.close())}
+              onPress={() => handleArchive(customer, () => swipeable.close())}
               android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-              className="h-full w-[88px] items-center justify-center gap-1"
+              className="h-full w-[80px] items-center justify-center gap-1"
             >
-              <MaterialIcons name="archive" size={20} color="#18181b" />
-              <Text className="text-[11px] font-bold text-zinc-900">{customer.archivedAt ? "Unarchive" : "Archive"}</Text>
+              <MaterialIcons name={customer.archivedAt ? "unarchive" : "archive"} size={18} color={customer.archivedAt ? "#fff" : "#18181b"} />
+              <Text className={`text-[10px] font-bold ${customer.archivedAt ? "text-white" : "text-zinc-900"}`}>
+                {customer.archivedAt ? "Restore" : "Archive"}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -296,73 +279,55 @@ export const CustomersPage = ({
         <Pressable
           onPress={() => onOpenCustomer(customer.id)}
           android_ripple={{ color: "rgba(0,0,0,0.04)", borderless: false }}
-          className={`bg-white border-x border-zinc-100 px-5 py-4 active:bg-zinc-50 ${
-            !isLast ? "border-b border-zinc-100" : ""
-          }`}
+          className={`bg-white active:bg-slate-50 px-4 ${isFirst ? "rounded-t-2xl border-t" : ""} ${isLast ? "rounded-b-2xl border-b" : ""} border-l border-r border-zinc-100`}
         >
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-3 py-3.5">
             {/* Avatar */}
-            <View className="h-11 w-11 rounded-2xl bg-zinc-900 items-center justify-center flex-shrink-0">
-              <Text className="text-white font-bold text-[13px]">
-                {initialsFor(customer.name)}
-              </Text>
+            <View className="h-11 w-11 rounded-xl items-center justify-center flex-shrink-0" style={{ backgroundColor: c.bg }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: c.text }}>{initials(customer.name)}</Text>
             </View>
 
             {/* Info */}
             <View className="flex-1 min-w-0">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2 flex-1 mr-2">
-                  <Text className="text-zinc-900 text-[15px] font-semibold" numberOfLines={1}>
-                    {customer.name}
-                  </Text>
-                  {customer.archivedAt && (
-                    <View className="bg-amber-100 px-1.5 py-0.5 rounded-md border border-amber-200">
-                      <Text className="text-amber-700 text-[9px] font-bold tracking-widest uppercase">Archived</Text>
-                    </View>
-                  )}
-                </View>
-                <View
-                  className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${
-                    cleared ? "bg-emerald-50" : "bg-red-50"
-                  }`}
-                >
-                  <View
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      cleared ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                  <Text
-                    className={`text-[10px] font-bold ${
-                      cleared ? "text-emerald-700" : "text-red-700"
-                    }`}
-                  >
-                    {cleared ? "Cleared" : formatCurrency(customer.due)}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center justify-between mt-1.5">
-                <Text className="text-zinc-400 text-[12px]">{customer.mobile}</Text>
-                <Text className="text-zinc-300 text-[11px]">
-                  Since {formatDate(customer.createdAt)}
+              <View className="flex-row items-center gap-2 mb-0.5">
+                <Text className="text-[14px] font-semibold text-slate-900 flex-shrink" numberOfLines={1}>
+                  {customer.name}
                 </Text>
+                {customer.archivedAt && (
+                  <View className="bg-amber-100 px-1.5 py-0.5 rounded-md border border-amber-200">
+                    <Text className="text-amber-700 text-[8px] font-bold uppercase">Archived</Text>
+                  </View>
+                )}
+              </View>
+              <View className="flex-row items-center gap-3">
+                <Text className="text-[11px] text-slate-400">{customer.mobile}</Text>
+                <Text className="text-[10px] text-slate-300">· Since {fmtDate(customer.createdAt)}</Text>
               </View>
             </View>
 
-            <MaterialIcons name="chevron-right" size={18} color="#d4d4d8" />
+            {/* Due badge */}
+            <View className="items-end">
+              <View className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${cleared ? "bg-emerald-50" : "bg-red-50"}`}>
+                <View className={`w-1.5 h-1.5 rounded-full ${cleared ? "bg-emerald-500" : "bg-red-500"}`} />
+                <Text className={`text-[10px] font-bold ${cleared ? "text-emerald-700" : "text-red-700"}`}>
+                  {cleared ? "Cleared" : fmt(customer.due)}
+                </Text>
+              </View>
+              {customer.totalPayment > 0 && (
+                <Text className="text-[9px] text-slate-400 mt-1">{fmt(customer.totalPayment)} total</Text>
+              )}
+            </View>
+
+            <MaterialIcons name="chevron-right" size={18} color="#d4d4d8" style={{ marginLeft: 2 }} />
           </View>
+          {!isLast && <View className="h-px bg-slate-50" />}
         </Pressable>
       </Swipeable>
     );
   };
 
   return (
-    <AppLayout
-      currentRoute="customers"
-      onNavigate={onNavigate}
-      title="Customer Book"
-      subtitle="Track relationships & payments"
-    >
+    <AppLayout currentRoute="customers" onNavigate={onNavigate} title="Customer Book" subtitle="Track relationships & payments">
       <FlatList
         data={isLoading ? [] : customers}
         keyExtractor={(item) => item.id}
@@ -370,40 +335,25 @@ export const CustomersPage = ({
         ListHeaderComponent={<ListHeader />}
         ListEmptyComponent={<ListEmpty />}
         ListFooterComponent={<ListFooter />}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={refetch} />
-        }
-        contentContainerClassName="px-4 pb-28 pt-2"
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refetch} />}
+        contentContainerClassName="px-4 pb-32 pt-2"
         showsVerticalScrollIndicator={false}
       />
     </AppLayout>
   );
 };
 
-/* ─── Sub-components ─────────────────────────────────────── */
-
-const FilterChip = ({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
+// ── Status Pill ─────────────────────────────────────────────────
+const StatusPill = ({ icon, label, count, color, bg }: {
+  icon: any; label: string; count: number; color: string; bg: string;
 }) => (
-  <Pressable
-    onPress={onPress}
-    android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
-    className={`rounded-full px-4 py-2 ${
-      active ? "bg-zinc-900" : "bg-white border border-zinc-200"
-    }`}
+  <View className="flex-1 bg-white rounded-2xl border border-slate-100 py-3 px-3 items-center"
+    style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 }}
   >
-    <Text
-      className={`text-[12px] font-semibold ${
-        active ? "text-white" : "text-zinc-500"
-      }`}
-    >
-      {label}
-    </Text>
-  </Pressable>
+    <View className="h-8 w-8 rounded-lg items-center justify-center mb-1.5" style={{ backgroundColor: bg }}>
+      <MaterialIcons name={icon} size={15} color={color} />
+    </View>
+    <Text className="text-[16px] font-bold text-slate-900">{count}</Text>
+    <Text className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{label}</Text>
+  </View>
 );

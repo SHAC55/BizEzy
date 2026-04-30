@@ -6,7 +6,9 @@ import {
   ScrollView,
   Text,
   View,
+  ActivityIndicator,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
 import { useDashboardData } from "../hooks/useDashboardData";
 import type { AuthSession } from "../types/auth";
@@ -26,56 +28,21 @@ type DashboardPageProps = {
   session: AuthSession;
 };
 
-type MaterialIconName = ComponentProps<typeof MaterialIcons>["name"];
+type IconName = ComponentProps<typeof MaterialIcons>["name"];
 
-const formatCurrency = (value: number) =>
-  `₹${Number(value || 0).toLocaleString("en-IN", {
-    maximumFractionDigits: 2,
-  })}`;
+const fmt = (v: number) =>
+  `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
+const fmtDate = (v: string) =>
+  new Date(v).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
-const formatTimestamp = (value: string | null) =>
-  value
-    ? new Date(value).toLocaleTimeString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    : "Just now";
-
-const STATUS_CONFIG = {
-  paid: {
-    label: "Paid",
-    dotColor: "#22C55E",
-    badgeBg: "#DCFCE7",
-    badgeText: "#15803D",
-    avatarBg: "#ECFDF5",
-    avatarText: "#065F46",
-  },
-  partial: {
-    label: "Partial",
-    dotColor: "#F59E0B",
-    badgeBg: "#FEF3C7",
-    badgeText: "#B45309",
-    avatarBg: "#FEF3C7",
-    avatarText: "#B45309",
-  },
-  pending: {
-    label: "Pending",
-    dotColor: "#EF4444",
-    badgeBg: "#FEE2E2",
-    badgeText: "#DC2626",
-    avatarBg: "#FEE2E2",
-    avatarText: "#DC2626",
-  },
+const STATUS = {
+  paid:    { label: "Paid",    dot: "#22C55E", bg: "#DCFCE7", text: "#15803D" },
+  partial: { label: "Partial", dot: "#F59E0B", bg: "#FEF3C7", text: "#B45309" },
+  pending: { label: "Pending", dot: "#EF4444", bg: "#FEE2E2", text: "#DC2626" },
 } as const;
 
-// Avatar color pools — pick by first letter
-const AVATAR_COLORS: Array<{ bg: string; text: string }> = [
+const COLORS = [
   { bg: "#EEF2FF", text: "#4338CA" },
   { bg: "#FEF3C7", text: "#B45309" },
   { bg: "#ECFDF5", text: "#065F46" },
@@ -84,36 +51,9 @@ const AVATAR_COLORS: Array<{ bg: string; text: string }> = [
   { bg: "#E0F2FE", text: "#0369A1" },
 ];
 
-const getAvatarColor = (name: string) =>
-  AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+const avatarColor = (n: string) => COLORS[n.charCodeAt(0) % COLORS.length];
 
-const QUICK_ACTIONS = [
-  {
-    name: "Add inventory",
-    description: "Stock new items",
-    icon: "inventory-2" as const,
-    iconBg: "#ECFDF5",
-    iconColor: "#059669",
-    action: "addInventory" as const,
-  },
-  {
-    name: "Add customer",
-    description: "Register new client",
-    icon: "groups" as const,
-    iconBg: "#EEF2FF",
-    iconColor: "#4F46E5",
-    action: "customers" as const,
-  },
-  {
-    name: "Add sale",
-    description: "Record transaction",
-    icon: "credit-card" as const,
-    iconBg: "#FFFBEB",
-    iconColor: "#D97706",
-    action: "sales" as const,
-  },
-] as const;
-
+// ═══════════════════════════════════════════════════════════════════
 export const DashboardPage = ({
   onNavigate,
   onOpenAddInventory,
@@ -122,426 +62,334 @@ export const DashboardPage = ({
   onOpenSales,
   session,
 }: DashboardPageProps) => {
-  const {
-    customerSummary,
-    error,
-    isLoading,
-    isRefreshing,
-    lastUpdated,
-    refetch,
-    sales,
-    salesSummary,
-  } = useDashboardData();
+  const { customerSummary, error, isLoading, isRefreshing, refetch, sales, salesSummary } =
+    useDashboardData();
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good Morning";
+    if (h < 17) return "Good Afternoon";
+    return "Good Evening";
+  })();
+
+  const firstName = session.user.name?.split(" ")[0] ?? "there";
 
   if (isLoading && !sales.length) {
     return (
-      <AppLayout
-        currentRoute="dashboard"
-        eyebrow="Dashboard"
-        onNavigate={onNavigate}
-        subtitle="Preparing your business workspace."
-        title="Command Centre"
-      >
+      <AppLayout currentRoute="dashboard" onNavigate={onNavigate} subtitle="Preparing your workspace." title="Dashboard">
         <View className="flex-1 items-center justify-center gap-3">
-          <View className="h-10 w-10 rounded-full border-2 border-slate-200 border-t-indigo-500" />
-          <Text style={{ fontSize: 13, color: "#94A3B8" }}>
-            Loading dashboard…
-          </Text>
+          <ActivityIndicator size="large" color="#6366F1" />
+          <Text style={{ fontSize: 13, color: "#94A3B8" }}>Loading dashboard…</Text>
         </View>
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout
-      currentRoute="dashboard"
-      eyebrow="Dashboard"
-      onNavigate={onNavigate}
-      subtitle="Here's your business today."
-      title="Dashboard"
-    >
+    <AppLayout currentRoute="dashboard" onNavigate={onNavigate} subtitle="Here's your business today." title="Dashboard">
       <ScrollView
-        style={{ backgroundColor: "#F8FAFE" }}
-        contentContainerStyle={{ paddingBottom: 112, paddingHorizontal: 16 }}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={refetch} />
-        }
+        style={{ backgroundColor: "#F8FAFC" }}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refetch} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Overview Header */}
-        <View className="mt-2 mb-5">
-          <Text className="text-[22px] font-bold text-slate-800">Overview</Text>
-          <Text className="text-[13px] text-slate-500 mt-1">
-            Track your business performance at a glance
-          </Text>
-        </View>
+        {/* ─── Greeting Banner ─── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(0)}>
+          <View className="mx-4 mt-3 mb-5">
+            <Text className="text-[14px] text-slate-400 font-medium">{greeting},</Text>
+            <Text className="text-[26px] font-bold text-slate-900 tracking-tight -mt-0.5">
+              {firstName} 👋
+            </Text>
+          </View>
+        </Animated.View>
 
-        {/* Stat Cards */}
-        <StatCards
-          customerSummary={customerSummary}
-          error={error}
-          isLoading={isLoading}
-          salesSummary={salesSummary}
-        />
+        {/* ─── Hero Revenue Card ─── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(80)}>
+          <View
+            className="mx-4 mb-5 rounded-[24px] overflow-hidden"
+            style={{
+              backgroundColor: "#0F172A",
+              shadowColor: "#0F172A",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.3,
+              shadowRadius: 20,
+              elevation: 10,
+            }}
+          >
+            {/* Top section */}
+            <View className="px-5 pt-5 pb-4">
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row items-center gap-2">
+                  <View className="h-8 w-8 rounded-lg bg-indigo-500/20 items-center justify-center">
+                    <MaterialIcons name="account-balance-wallet" size={16} color="#818CF8" />
+                  </View>
+                  <Text className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">
+                    Total Revenue
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-1 bg-emerald-500/15 rounded-full px-2.5 py-1">
+                  <MaterialIcons name="trending-up" size={12} color="#34D399" />
+                  <Text className="text-[10px] font-bold text-emerald-400">
+                    {salesSummary.todaySalesCount} today
+                  </Text>
+                </View>
+              </View>
 
-        {/* Quick Actions */}
-        <View className="mt-8">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+              <Text className="text-[36px] font-bold text-white tracking-tight">
+                {fmt(salesSummary.totalRevenue)}
+              </Text>
+              <Text className="text-[13px] text-slate-500 mt-1">
+                from {salesSummary.totalSales} total sales
+              </Text>
+            </View>
+
+            {/* Bottom metrics strip */}
+            <View className="flex-row border-t border-white/5">
+              <MetricPill
+                icon="today"
+                label="Today"
+                value={fmt(salesSummary.todaySalesAmount)}
+                color="#60A5FA"
+                border
+              />
+              <MetricPill
+                icon="calendar-month"
+                label="This Month"
+                value={fmt(salesSummary.monthlyRevenue)}
+                color="#A78BFA"
+                border
+              />
+              <MetricPill
+                icon="warning"
+                label="Outstanding"
+                value={fmt(salesSummary.totalOutstanding)}
+                color="#FB923C"
+              />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ─── Stat Cards Row ─── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(160)}>
+          <View className="flex-row px-4 gap-3 mb-5">
+            <StatCard
+              icon="groups"
+              label="Customers"
+              value={String(customerSummary.totalCustomers || 0)}
+              sub={`${customerSummary.pendingCustomers} with dues`}
+              iconBg="#EEF2FF"
+              iconColor="#6366F1"
+              dark
+            />
+            <StatCard
+              icon="receipt-long"
+              label="Total Sales"
+              value={String(salesSummary.totalSales || 0)}
+              sub={`${salesSummary.uniqueCustomers} customers`}
+              iconBg="#FEF3C7"
+              iconColor="#F59E0B"
+            />
+          </View>
+        </Animated.View>
+
+        {/* ─── Quick Actions ─── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(240)}>
+          <View className="px-4 mb-5">
+            <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-3 ml-1">
               Quick Actions
             </Text>
-            <Text className="text-[10px] text-slate-400">Tap to create</Text>
+            <View className="flex-row gap-3">
+              <ActionCard icon="add-shopping-cart" label="New Sale" color="#059669" bg="#ECFDF5" onPress={onOpenSales} />
+              <ActionCard icon="inventory-2" label="Add Stock" color="#6366F1" bg="#EEF2FF" onPress={onOpenAddInventory} />
+              <ActionCard icon="person-add" label="Customer" color="#F59E0B" bg="#FEF3C7" onPress={onOpenCustomers} />
+            </View>
           </View>
-          <QuickActions
-            onOpenAddInventory={onOpenAddInventory}
-            onOpenCustomers={onOpenCustomers}
-            onOpenSales={onOpenSales}
-          />
-        </View>
+        </Animated.View>
 
-        {/* Recent Sales */}
-        <View className="mt-8 mb-4">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-              Recent Transactions
-            </Text>
-            <Pressable onPress={onOpenSales} android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: true }}>
-              <Text className="text-[11px] font-medium text-indigo-600">
-                View all
+        {/* ─── Activity Feed ─── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(320)}>
+          <View className="px-4 mb-4">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase ml-1">
+                Recent Activity
               </Text>
-            </Pressable>
+              <Pressable onPress={onOpenSales} android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: true }}>
+                <Text className="text-[11px] font-semibold text-indigo-600">View All →</Text>
+              </Pressable>
+            </View>
+
+            <View
+              className="bg-white rounded-2xl border border-slate-100 overflow-hidden"
+              style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}
+            >
+              {isLoading ? (
+                <View className="items-center py-12">
+                  <ActivityIndicator size="small" color="#6366F1" />
+                  <Text className="text-[12px] text-slate-400 mt-2">Loading…</Text>
+                </View>
+              ) : error ? (
+                <View className="items-center px-5 py-12">
+                  <MaterialIcons name="error-outline" size={28} color="#EF4444" />
+                  <Text className="text-[12px] text-red-500 mt-2 text-center">{error}</Text>
+                </View>
+              ) : sales.length === 0 ? (
+                <View className="items-center px-5 py-12">
+                  <View className="w-14 h-14 rounded-2xl bg-slate-50 items-center justify-center mb-3">
+                    <MaterialIcons name="receipt-long" size={24} color="#94A3B8" />
+                  </View>
+                  <Text className="text-[14px] font-semibold text-slate-700">No sales yet</Text>
+                  <Text className="text-[12px] text-slate-400 mt-1">Create your first sale to see activity here</Text>
+                </View>
+              ) : (
+                sales.slice(0, 5).map((sale, i) => (
+                  <SaleRow key={sale.id} sale={sale} isLast={i === Math.min(sales.length, 5) - 1} />
+                ))
+              )}
+
+              {!isLoading && !error && sales.length > 5 && (
+                <Pressable
+                  onPress={onOpenSales}
+                  android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+                  className="py-3 items-center border-t border-slate-50 bg-slate-50/50"
+                >
+                  <Text className="text-[12px] font-semibold text-indigo-600">
+                    See all {sales.length} transactions →
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-          <RecentSales error={error} isLoading={isLoading} sales={sales} />
-        </View>
+        </Animated.View>
+
+        {/* ─── Business Pulse ─── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(400)}>
+          <View className="px-4 mb-4">
+            <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-3 ml-1">
+              Business Pulse
+            </Text>
+            <View className="flex-row gap-3">
+              <PulseCard
+                icon="payments"
+                label="Collected"
+                value={fmt(salesSummary.totalRevenue)}
+                color="#10B981"
+                bg="#ECFDF5"
+              />
+              <PulseCard
+                icon="schedule"
+                label="Pending"
+                value={fmt(customerSummary.totalDue)}
+                color="#EF4444"
+                bg="#FEF2F2"
+              />
+            </View>
+          </View>
+        </Animated.View>
       </ScrollView>
     </AppLayout>
   );
 };
 
-// ── Stat Cards ────────────────────────────────────────────────────
+// ── Metric Pill (inside hero card) ───────────────────────────────
+const MetricPill = ({ icon, label, value, color, border }: {
+  icon: IconName; label: string; value: string; color: string; border?: boolean;
+}) => (
+  <View className={`flex-1 py-3.5 px-3 items-center ${border ? "border-r border-white/5" : ""}`}>
+    <MaterialIcons name={icon} size={14} color={color} style={{ marginBottom: 4 }} />
+    <Text style={{ fontSize: 14, fontWeight: "800", color: "#FFFFFF" }} numberOfLines={1}>{value}</Text>
+    <Text style={{ fontSize: 9, fontWeight: "600", color: "#64748B", marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
+  </View>
+);
 
-type StatCardsProps = {
-  customerSummary: DashboardCustomerSummary;
-  salesSummary: DashboardSalesSummary;
-  isLoading: boolean;
-  error: string | null;
-};
+// ── Stat Card ────────────────────────────────────────────────────
+const StatCard = ({ icon, label, value, sub, iconBg, iconColor, dark }: {
+  icon: IconName; label: string; value: string; sub: string;
+  iconBg: string; iconColor: string; dark?: boolean;
+}) => (
+  <View
+    className={`flex-1 rounded-2xl p-4 ${dark ? "bg-slate-900" : "bg-white border border-slate-100"}`}
+    style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 }}
+  >
+    <View className="h-9 w-9 rounded-xl items-center justify-center mb-3" style={{ backgroundColor: dark ? "rgba(255,255,255,0.08)" : iconBg }}>
+      <MaterialIcons name={icon} size={17} color={dark ? "#FFFFFF" : iconColor} />
+    </View>
+    <Text className={`text-[24px] font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}>{value}</Text>
+    <Text className={`text-[11px] font-semibold mt-0.5 ${dark ? "text-slate-400" : "text-slate-500"}`}>{label}</Text>
+    <Text className={`text-[10px] mt-1 ${dark ? "text-slate-500" : "text-slate-400"}`}>{sub}</Text>
+  </View>
+);
 
-type StatDef = {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: MaterialIconName;
-  isDark?: boolean;
-  trend?: "up" | "down" | "neutral";
-  trendValue?: string;
-};
+// ── Quick Action Card ────────────────────────────────────────────
+const ActionCard = ({ icon, label, color, bg, onPress }: {
+  icon: IconName; label: string; color: string; bg: string; onPress: () => void;
+}) => (
+  <Pressable
+    onPress={onPress}
+    android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+    className="flex-1 bg-white rounded-2xl border border-slate-100 py-4 items-center active:bg-slate-50"
+    style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 }}
+  >
+    <View className="h-11 w-11 rounded-xl items-center justify-center mb-2.5" style={{ backgroundColor: bg }}>
+      <MaterialIcons name={icon} size={20} color={color} />
+    </View>
+    <Text className="text-[12px] font-semibold text-slate-700">{label}</Text>
+  </Pressable>
+);
 
-const StatCards = ({
-  customerSummary,
-  error,
-  isLoading,
-  salesSummary,
-}: StatCardsProps) => {
-  const stats: StatDef[] = [
-    {
-      title: "Today's Sales",
-      value: isLoading ? "—" : formatCurrency(salesSummary.todaySalesAmount),
-      subtitle: error
-        ? "Unable to load"
-        : `${salesSummary.todaySalesCount || 0} transaction${
-            salesSummary.todaySalesCount === 1 ? "" : "s"
-          } today`,
-      icon: "trending-up",
-      isDark: true,
-      trend: salesSummary.todaySalesCount > 0 ? "up" : "neutral",
-    },
-    {
-      title: "Monthly Revenue",
-      value: isLoading ? "—" : formatCurrency(salesSummary.monthlyRevenue),
-      subtitle: error
-        ? "Unable to load"
-        : `${formatCurrency(salesSummary.monthlySalesAmount)} total sales`,
-      icon: "payments",
-      isDark: false,
-    },
-    {
-      title: "Pending Payments",
-      value: isLoading ? "—" : formatCurrency(salesSummary.totalOutstanding),
-      subtitle: error
-        ? "Unable to load"
-        : `From ${salesSummary.totalSales || 0} total sales`,
-      icon: "credit-card",
-      isDark: false,
-    },
-    {
-      title: "Total Customers",
-      value: isLoading
-        ? "—"
-        : (customerSummary.totalCustomers || 0).toLocaleString("en-IN"),
-      subtitle: error
-        ? "Unable to load"
-        : `${customerSummary.pendingCustomers || 0} with pending balance`,
-      icon: "groups",
-      isDark: true,
-    },
-  ];
-
+// ── Sale Row ─────────────────────────────────────────────────────
+const SaleRow = ({ sale, isLast }: { sale: DashboardSale; isLast: boolean }) => {
+  const s = STATUS[sale.status] ?? STATUS.pending;
+  const c = avatarColor(sale.customer.name);
   return (
-    <View className="flex-row flex-wrap gap-3">
-      {stats.map((stat) => (
-        <View
-          key={stat.title}
-          className={`rounded-xl p-4 ${
-            stat.isDark ? "bg-slate-900" : "bg-white"
-          }`}
-          style={{
-            width: "48%",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.04,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
-        >
-          <View className="flex-row justify-between items-start mb-3">
-            <View
-              className={`h-9 w-9 rounded-lg items-center justify-center ${
-                stat.isDark ? "bg-white/10" : "bg-slate-100"
-              }`}
-            >
-              <MaterialIcons
-                name={stat.icon}
-                size={18}
-                color={stat.isDark ? "#FFFFFF" : "#475569"}
-              />
-            </View>
-            {stat.trend && stat.trend === "up" && !stat.isDark && (
-              <View className="flex-row items-center gap-0.5 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                <MaterialIcons name="arrow-upward" size={10} color="#10B981" />
-                <Text className="text-[9px] font-medium text-emerald-600">
-                  +{salesSummary.todaySalesCount}
-                </Text>
-              </View>
-            )}
-            {stat.trend && stat.trend === "up" && stat.isDark && (
-              <View className="flex-row items-center gap-0.5 bg-emerald-500/20 px-1.5 py-0.5 rounded-full">
-                <MaterialIcons name="arrow-upward" size={10} color="#34D399" />
-                <Text className="text-[9px] font-medium text-emerald-400">
-                  +{salesSummary.todaySalesCount}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <Text
-            className={`text-[22px] font-bold mb-1 ${
-              stat.isDark ? "text-white" : "text-slate-800"
-            }`}
-          >
-            {stat.value}
-          </Text>
-          <Text
-            className={`text-[11px] font-medium ${
-              stat.isDark ? "text-slate-400" : "text-slate-500"
-            }`}
-          >
-            {stat.title}
-          </Text>
-          <Text
-            className={`text-[10px] mt-1 leading-tight ${
-              stat.isDark ? "text-slate-500" : "text-slate-400"
-            }`}
-          >
-            {stat.subtitle}
+    <View className={`px-4 py-3.5 ${!isLast ? "border-b border-slate-50" : ""}`}>
+      <View className="flex-row items-center gap-3">
+        <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: c.bg }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: c.text }}>
+            {sale.customer.name.charAt(0).toUpperCase()}
           </Text>
         </View>
-      ))}
+        <View className="flex-1">
+          <View className="flex-row items-center gap-2 mb-0.5">
+            <Text className="text-[13px] font-semibold text-slate-800" numberOfLines={1}>
+              {sale.customer.name}
+            </Text>
+            <View className="flex-row items-center gap-1 rounded-full px-2 py-0.5" style={{ backgroundColor: s.bg }}>
+              <View className="w-1 h-1 rounded-full" style={{ backgroundColor: s.dot }} />
+              <Text style={{ fontSize: 8, fontWeight: "700", color: s.text }}>{s.label}</Text>
+            </View>
+          </View>
+          <Text className="text-[10px] text-slate-400" numberOfLines={1}>
+            {sale.items?.slice(0, 2).map((i) => `${i.quantity}× ${i.product.name}`).join(" · ")}
+            {(sale.items?.length ?? 0) > 2 ? ` +${sale.items.length - 2}` : ""} · {fmtDate(sale.createdAt)}
+          </Text>
+        </View>
+        <View className="items-end">
+          <Text className="text-[13px] font-bold text-slate-800">{fmt(sale.totalAmount)}</Text>
+          {sale.dueAmount > 0 ? (
+            <Text className="text-[9px] font-semibold text-amber-600 mt-0.5">Due {fmt(sale.dueAmount)}</Text>
+          ) : (
+            <Text className="text-[9px] font-semibold text-emerald-600 mt-0.5">Cleared</Text>
+          )}
+        </View>
+      </View>
     </View>
   );
 };
 
-// ── Quick Actions ─────────────────────────────────────────────────
-
-const QuickActions = ({
-  onOpenAddInventory,
-  onOpenCustomers,
-  onOpenSales,
-}: {
-  onOpenAddInventory: () => void;
-  onOpenCustomers: () => void;
-  onOpenSales: () => void;
-}) => {
-  const handlers = {
-    addInventory: onOpenAddInventory,
-    customers: onOpenCustomers,
-    sales: onOpenSales,
-  };
-
-  return (
-    <View className="rounded-xl bg-white border border-slate-100 overflow-hidden shadow-sm">
-      {QUICK_ACTIONS.map((action, index) => (
-        <Pressable
-          key={action.name}
-          onPress={handlers[action.action]}
-          android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-          className={`flex-row items-center gap-4 px-4 py-3.5 active:bg-slate-50 ${
-            index < QUICK_ACTIONS.length - 1 ? "border-b border-slate-50" : ""
-          }`}
-        >
-          <View
-            className="w-10 h-10 rounded-lg items-center justify-center"
-            style={{ backgroundColor: action.iconBg }}
-          >
-            <MaterialIcons
-              name={action.icon}
-              size={18}
-              color={action.iconColor}
-            />
-          </View>
-          <View className="flex-1">
-            <Text className="text-[14px] font-semibold text-slate-800">
-              {action.name}
-            </Text>
-            <Text className="text-[11px] text-slate-400 mt-0.5">
-              {action.description}
-            </Text>
-          </View>
-          <MaterialIcons name="chevron-right" size={18} color="#CBD5E1" />
-        </Pressable>
-      ))}
+// ── Pulse Card ───────────────────────────────────────────────────
+const PulseCard = ({ icon, label, value, color, bg }: {
+  icon: IconName; label: string; value: string; color: string; bg: string;
+}) => (
+  <View
+    className="flex-1 bg-white rounded-2xl border border-slate-100 p-4"
+    style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}
+  >
+    <View className="flex-row items-center gap-2 mb-2">
+      <View className="h-8 w-8 rounded-lg items-center justify-center" style={{ backgroundColor: bg }}>
+        <MaterialIcons name={icon} size={16} color={color} />
+      </View>
+      <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</Text>
     </View>
-  );
-};
-
-// ── Recent Sales ──────────────────────────────────────────────────
-
-type RecentSalesProps = {
-  sales: DashboardSale[];
-  isLoading: boolean;
-  error: string | null;
-};
-
-const RecentSales = ({ error, isLoading, sales }: RecentSalesProps) => (
-  <View className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
-    {isLoading ? (
-      <View className="items-center justify-center py-12">
-        <View className="h-8 w-8 rounded-full border-2 border-slate-200 border-t-indigo-500" />
-        <Text className="text-[12px] text-slate-400 mt-3">Loading...</Text>
-      </View>
-    ) : error ? (
-      <View className="items-center px-5 py-12">
-        <MaterialIcons name="error-outline" size={32} color="#EF4444" />
-        <Text className="text-center text-[12px] text-red-500 mt-2">
-          {error}
-        </Text>
-      </View>
-    ) : sales.length === 0 ? (
-      <View className="items-center px-5 py-12">
-        <View className="w-12 h-12 rounded-full bg-slate-100 items-center justify-center mb-3">
-          <MaterialIcons name="receipt-long" size={22} color="#94A3B8" />
-        </View>
-        <Text className="text-[13px] text-slate-500">No sales yet</Text>
-        <Text className="text-[11px] text-slate-400 mt-1">
-          Start by adding your first sale
-        </Text>
-      </View>
-    ) : (
-      sales.slice(0, 5).map((sale, index) => {
-        const status = STATUS_CONFIG[sale.status] ?? STATUS_CONFIG.pending;
-        const avatar = getAvatarColor(sale.customer.name);
-        return (
-          <Pressable
-            key={sale.id}
-            onPress={() => {}}
-            android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-            className={`flex-row items-center gap-3 px-4 py-3 active:bg-slate-50 ${
-              index < Math.min(sales.length, 5) - 1
-                ? "border-b border-slate-50"
-                : ""
-            }`}
-          >
-            {/* Avatar */}
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: avatar.bg }}
-            >
-              <Text
-                className="text-[13px] font-semibold"
-                style={{ color: avatar.text }}
-              >
-                {sale.customer.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-
-            {/* Info */}
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1.5 mb-0.5">
-                <Text className="text-[13px] font-semibold text-slate-800">
-                  {sale.customer.name}
-                </Text>
-                <View
-                  className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: status.badgeBg }}
-                >
-                  <View
-                    className="w-1 h-1 rounded-full"
-                    style={{ backgroundColor: status.dotColor }}
-                  />
-                  <Text
-                    className="text-[8px] font-bold"
-                    style={{ color: status.badgeText }}
-                  >
-                    {status.label}
-                  </Text>
-                </View>
-              </View>
-
-              <Text
-                className="text-[10px] text-slate-500 mb-0.5"
-                numberOfLines={1}
-              >
-                {sale.items
-                  .slice(0, 2)
-                  .map((item) => `${item.quantity}× ${item.product.name}`)
-                  .join(" · ")}
-                {sale.items.length > 2 ? ` · +${sale.items.length - 2}` : ""}
-              </Text>
-
-              <Text className="text-[9px] text-slate-400">
-                {formatDate(sale.createdAt)}
-              </Text>
-            </View>
-
-            {/* Amount */}
-            <View className="items-end">
-              <Text className="text-[13px] font-bold text-slate-800">
-                {formatCurrency(sale.totalAmount)}
-              </Text>
-              {sale.dueAmount > 0 ? (
-                <Text className="text-[9px] font-medium text-amber-600 mt-0.5">
-                  Due {formatCurrency(sale.dueAmount)}
-                </Text>
-              ) : (
-                <Text className="text-[9px] font-medium text-emerald-600 mt-0.5">
-                  Paid
-                </Text>
-              )}
-            </View>
-          </Pressable>
-        );
-      })
-    )}
-    {!isLoading && !error && sales.length > 5 && (
-      <Pressable
-        onPress={() => {}}
-        android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-        className="py-3 items-center border-t border-slate-50 bg-slate-50/50"
-      >
-        <Text className="text-[11px] font-medium text-indigo-600">
-          View all {sales.length} transactions
-        </Text>
-      </Pressable>
-    )}
+    <Text className="text-[20px] font-bold text-slate-900 tracking-tight">{value}</Text>
   </View>
 );
