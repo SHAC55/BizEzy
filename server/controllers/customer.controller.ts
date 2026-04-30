@@ -2,6 +2,7 @@ import z from "zod";
 import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
 import appAssert from "../utils/appAssert";
 import catchErrors from "../utils/catchErrors";
+import {
   archiveCustomer,
   createCustomer,
   getCustomerById,
