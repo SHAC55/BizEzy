@@ -55,8 +55,8 @@ export const CustomersPage = ({
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [dueStatus, setDueStatus] = useState<
-    "all" | "pending" | "cleared" | "high_due"
+  const [filterMode, setFilterMode] = useState<
+    "all" | "pending" | "cleared" | "high_due" | "archived"
   >("all");
 
   const debouncedSearch = useDebounce(search);
@@ -73,18 +73,20 @@ export const CustomersPage = ({
     page,
     limit: 10,
     search: debouncedSearch,
-    dueStatus,
+    dueStatus: filterMode === "archived" ? "all" : filterMode,
+    includeArchived: filterMode === "archived",
   });
 
   const handleArchiveCustomer = (customer: Customer, close: () => void) => {
+    const isArchived = !!customer.archivedAt;
     Alert.alert(
-      "Archive Customer",
-      `Archive ${customer.name} and hide them from the active list?`,
+      isArchived ? "Unarchive Customer" : "Archive Customer",
+      isArchived ? `Restore ${customer.name} to the active list?` : `Archive ${customer.name} and hide them from the active list?`,
       [
         { text: "Cancel", style: "cancel", onPress: close },
         {
-          text: "Archive",
-          style: "destructive",
+          text: isArchived ? "Unarchive" : "Archive",
+          style: isArchived ? "default" : "destructive",
           onPress: async () => {
             const token = session?.tokens.accessToken;
             if (!token) { close(); return; }
@@ -101,13 +103,13 @@ export const CustomersPage = ({
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Toast.show({
                 type: "success",
-                text1: "Customer Archived",
-                text2: `${customer.name} moved out of the active list.`,
+                text1: isArchived ? "Customer Unarchived" : "Customer Archived",
+                text2: isArchived ? `${customer.name} restored to active list.` : `${customer.name} moved out of the active list.`,
               });
             } catch (err) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              const msg = err instanceof Error ? err.message : "Failed to archive customer";
-              Toast.show({ type: "error", text1: "Archive Failed", text2: msg });
+              const msg = err instanceof Error ? err.message : "Failed to toggle archive status";
+              Toast.show({ type: "error", text1: "Action Failed", text2: msg });
             }
           },
         },
@@ -185,12 +187,12 @@ export const CustomersPage = ({
 
       {/* ── Filter Chips ── */}
       <View className="flex-row flex-wrap gap-2 mb-4">
-        {(["all", "pending", "cleared", "high_due"] as const).map((item) => (
+        {(["all", "pending", "cleared", "high_due", "archived"] as const).map((item) => (
           <FilterChip
             key={item}
-            active={dueStatus === item}
+            active={filterMode === item}
             label={item === "high_due" ? "High Due" : item.charAt(0).toUpperCase() + item.slice(1)}
-            onPress={() => { setDueStatus(item); setPage(1); }}
+            onPress={() => { setFilterMode(item); setPage(1); }}
           />
         ))}
       </View>
@@ -286,7 +288,7 @@ export const CustomersPage = ({
               className="h-full w-[88px] items-center justify-center gap-1"
             >
               <MaterialIcons name="archive" size={20} color="#18181b" />
-              <Text className="text-[11px] font-bold text-zinc-900">Archive</Text>
+              <Text className="text-[11px] font-bold text-zinc-900">{customer.archivedAt ? "Unarchive" : "Archive"}</Text>
             </Pressable>
           </View>
         )}
@@ -309,9 +311,16 @@ export const CustomersPage = ({
             {/* Info */}
             <View className="flex-1 min-w-0">
               <View className="flex-row items-center justify-between">
-                <Text className="text-zinc-900 text-[15px] font-semibold" numberOfLines={1}>
-                  {customer.name}
-                </Text>
+                <View className="flex-row items-center gap-2 flex-1 mr-2">
+                  <Text className="text-zinc-900 text-[15px] font-semibold" numberOfLines={1}>
+                    {customer.name}
+                  </Text>
+                  {customer.archivedAt && (
+                    <View className="bg-amber-100 px-1.5 py-0.5 rounded-md border border-amber-200">
+                      <Text className="text-amber-700 text-[9px] font-bold tracking-widest uppercase">Archived</Text>
+                    </View>
+                  )}
+                </View>
                 <View
                   className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${
                     cleared ? "bg-emerald-50" : "bg-red-50"

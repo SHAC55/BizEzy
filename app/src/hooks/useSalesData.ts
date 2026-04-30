@@ -21,11 +21,13 @@ export const useSalesData = ({
   limit = 10,
   search = "",
   status = "all",
+  hasReminder = false,
 }: {
   page?: number;
   limit?: number;
   search?: string;
   status?: "all" | "paid" | "partial" | "pending";
+  hasReminder?: boolean;
 }) => {
   const { session } = useAuth();
   const accessToken = session?.tokens.accessToken;
@@ -36,6 +38,7 @@ export const useSalesData = ({
       limit,
       search,
       status,
+      hasReminder,
     }),
     enabled: Boolean(accessToken),
     queryFn: () =>
@@ -44,6 +47,7 @@ export const useSalesData = ({
         limit,
         search,
         status,
+        hasReminder,
       }),
   });
 

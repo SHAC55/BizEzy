@@ -30,10 +30,8 @@ export const generateInvoiceHTML = (sale: DashboardSale, user: User): string => 
   const ownerPhone    = user.mobile  ?? "";
   const ownerEmail    = user.email   ?? "";
 
-  // ── Dummy fallbacks until real fields are wired ──────────────────────────
-  const ownerAddress  = (user.business as any)?.address  ?? "123, MG Road, Andheri West\nMumbai, Maharashtra 400058";
-  const gstNumber     = (user.business as any)?.gstNumber ?? "27AABCU9603R1ZX";
-  // ─────────────────────────────────────────────────────────────────────────
+  const ownerAddress  = user.business?.address  ?? "";
+  const gstNumber     = user.business?.gstNumber ?? "";
 
   const invNumber     = sale.id.slice(0, 8).toUpperCase();
   const status        = statusConfig(sale.status);

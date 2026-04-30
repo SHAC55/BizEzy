@@ -24,14 +24,29 @@ export const FormBottomSheet = ({
   const modalRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => ["92%"], []);
+  const isUnmounting = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      isUnmounting.current = true;
+    };
+  }, []);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      modalRef.current?.present();
+      if (!isUnmounting.current) {
+        modalRef.current?.present();
+      }
     });
 
     return () => cancelAnimationFrame(frame);
   }, []);
+
+  const handleDismiss = () => {
+    if (!isUnmounting.current) {
+      onClose();
+    }
+  };
 
   return (
     <BottomSheetModal
@@ -42,7 +57,7 @@ export const FormBottomSheet = ({
       enableDynamicSizing={false}
       enablePanDownToClose
       keyboardBehavior="interactive"
-      onDismiss={onClose}
+      onDismiss={handleDismiss}
       backgroundStyle={{ backgroundColor: "#F8FAFC" }}
       handleIndicatorStyle={{ backgroundColor: "#CBD5E1", width: 44 }}
       backdropComponent={(props) => (
@@ -67,7 +82,7 @@ export const FormBottomSheet = ({
           </View>
 
           <Pressable
-            onPress={onClose}
+            onPress={() => modalRef.current?.dismiss()}
             android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
             className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white"
           >

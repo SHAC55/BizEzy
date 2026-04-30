@@ -3,7 +3,8 @@ export type AppRoute =
   | "inventory"
   | "addInventory"
   | "sales"
-  | "customers";
+  | "customers"
+  | "reminders";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -14,4 +15,5 @@ export type RootStackParamList = {
   AddCustomer: { customerId?: string } | undefined;
   CustomerDetail: { customerId: string };
   UserDetail: undefined;
+  Reminders: undefined;
 };

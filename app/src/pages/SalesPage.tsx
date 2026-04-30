@@ -18,6 +18,7 @@ import type { AppRoute } from "../types/navigation";
 type SalesPageProps = {
   onOpenAddSale: () => void;
   onOpenSale: (saleId: string) => void;
+  onOpenReminders: () => void;
   onNavigate: (route: AppRoute) => void;
 };
 
@@ -56,6 +57,7 @@ export const SalesPage = ({
   onNavigate,
   onOpenSale,
   onOpenAddSale,
+  onOpenReminders,
 }: SalesPageProps) => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -87,17 +89,26 @@ export const SalesPage = ({
           <Text className="text-[22px] font-bold text-zinc-900 tracking-tight">Overview</Text>
           <Text className="text-[13px] text-zinc-400 mt-0.5">Sales performance at a glance</Text>
         </View>
-        <Pressable
-          onPress={() => setStatsOpen(!statsOpen)}
-          android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
-          className="h-9 w-9 rounded-xl bg-white border border-zinc-200 items-center justify-center"
-        >
-          <MaterialIcons
-            name={statsOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-            size={20}
-            color="#52525b"
-          />
-        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={onOpenReminders}
+            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+            className="h-9 w-9 rounded-xl bg-white border border-zinc-200 items-center justify-center"
+          >
+            <MaterialIcons name="notifications-active" size={17} color="#52525b" />
+          </Pressable>
+          <Pressable
+            onPress={() => setStatsOpen(!statsOpen)}
+            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+            className="h-9 w-9 rounded-xl bg-white border border-zinc-200 items-center justify-center"
+          >
+            <MaterialIcons
+              name={statsOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+              size={20}
+              color="#52525b"
+            />
+          </Pressable>
+        </View>
       </View>
 
       {/* Stats grid */}

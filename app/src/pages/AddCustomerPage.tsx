@@ -184,9 +184,9 @@ export const AddCustomerPage = ({
         Toast.show({ type: "success", text1: "Customer Created", text2: `${form.name.trim()} added to your book.` });
         onCreated(customer.id);
       }
-    } catch {
+    } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const msg = "Failed to save customer";
+      const msg = err?.message || "Failed to save customer";
       setSubmitError(msg);
       Toast.show({ type: "error", text1: "Save Failed", text2: msg });
     } finally {

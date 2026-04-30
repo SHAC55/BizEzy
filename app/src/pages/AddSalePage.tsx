@@ -9,6 +9,8 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
+  Linking,
 } from "react-native";
 import DateTimePicker, {
   type DateTimePickerEvent,
@@ -165,6 +167,23 @@ export const AddSalePage = ({
       ]);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Toast.show({ type: "success", text1: "Sale Created", text2: `₹${total.toLocaleString("en-IN")} sale recorded.` });
+      
+      if (res.lowStockProducts && res.lowStockProducts.length > 0 && session?.user?.mobile) {
+        setTimeout(async () => {
+          const productList = res.lowStockProducts!.map(p => `- ${p.name} (Left: ${p.quantity}, Min: ${p.minimumQuantity})`).join("\n");
+          const message = `🚨 *Low Stock Alert*\n\nThe following products are running low on stock and need to be restocked:\n\n${productList}\n\nPlease restock them soon.`;
+          const digits = session.user!.mobile!.replace(/\D/g, "");
+          const phone = digits.startsWith("91") && digits.length >= 12 ? digits : `91${digits}`;
+          const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+          
+          try {
+            await Linking.openURL(url);
+          } catch (e) {
+            console.log("Could not open WhatsApp:", e);
+          }
+        }, 500); // slight delay so the toast shows first
+      }
+
       onCreated(res.sale.id);
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -193,6 +212,18 @@ export const AddSalePage = ({
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-4 pb-36 pt-3 mt-3"
         >
+          {/* ── Top Action Bar ── */}
+          <View className="flex-row items-center gap-2 mb-5">
+            <Pressable
+              onPress={onBack}
+              android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+              className="self-start flex-row items-center gap-1.5 bg-white border border-slate-200 px-4 py-3 rounded-2xl"
+            >
+              <MaterialIcons name="arrow-back-ios-new" size={14} color="#18181b" />
+              <Text className="text-slate-900 font-semibold text-[13px]">Back</Text>
+            </Pressable>
+          </View>
+
           {/* ── STEP 1: Customer ── */}
           <SectionHeader step={1} title="Select Customer" icon="person" />
           <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-5">

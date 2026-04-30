@@ -23,6 +23,7 @@ import type {
   RegisterPayload,
   Tokens,
   User,
+  Business,
 } from "../types/auth";
 import { assertApiUrl } from "../config";
 
@@ -64,6 +65,11 @@ const request = async <T>(path: string, options: RequestOptions = {}) => {
   const data = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : null;
 
   if (!response.ok) {
+    if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      const firstError = data.errors[0];
+      throw new Error(`${firstError.path ? firstError.path + ': ' : ''}${firstError.message}`);
+    }
+
     throw new Error(
       typeof data?.message === "string"
         ? data.message
@@ -165,6 +171,7 @@ export const fetchSales = (
     limit: number;
     search?: string;
     status?: "all" | "paid" | "partial" | "pending";
+    hasReminder?: boolean;
   },
 ) =>
   request<DashboardSalesResponse>(
@@ -173,6 +180,7 @@ export const fetchSales = (
       limit: params.limit,
       search: params.search ?? "",
       status: params.status ?? "all",
+      hasReminder: params.hasReminder ?? false,
     })}`,
     {
       headers: {
@@ -303,11 +311,11 @@ export const fetchProductMovements = (accessToken: string, productId: string) =>
     },
   });
 
-export const createCustomer = (
+export const createCustomer = async (
   accessToken: string,
   payload: CreateCustomerPayload,
-) =>
-  request<CreateCustomerPayload & { id: string }>("/customers", {
+) => {
+  const data = await request<{ message: string; customer: CreateCustomerPayload & { id: string } }>("/customers", {
     method: "POST",
     body: payload,
     headers: {
@@ -315,6 +323,8 @@ export const createCustomer = (
       Authorization: `Bearer ${accessToken}`,
     },
   });
+  return data.customer;
+};
 
 export const fetchCustomer = (accessToken: string, customerId: string) =>
   request<CustomerDetail>(`/customers/${customerId}`, {
@@ -323,19 +333,24 @@ export const fetchCustomer = (accessToken: string, customerId: string) =>
     },
   });
 
-export const updateCustomer = (
+export const updateCustomer = async (
   accessToken: string,
   customerId: string,
   payload: Partial<CreateCustomerPayload>,
-) =>
-  request<CreateCustomerPayload & { id: string }>(`/customers/${customerId}`, {
-    method: "PATCH",
-    body: payload,
-    headers: {
-      ...mobileHeaders,
-      Authorization: `Bearer ${accessToken}`,
+) => {
+  const data = await request<{ message: string; customer: CreateCustomerPayload & { id: string } }>(
+    `/customers/${customerId}`,
+    {
+      method: "PATCH",
+      body: payload,
+      headers: {
+        ...mobileHeaders,
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+  );
+  return data.customer;
+};
 
 export const archiveCustomer = (accessToken: string, customerId: string) =>
   request<{ message?: string }>(`/customers/${customerId}/archive`, {
@@ -346,7 +361,11 @@ export const archiveCustomer = (accessToken: string, customerId: string) =>
   });
 
 export const createSale = (accessToken: string, payload: CreateSalePayload) =>
-  request<{ message?: string; sale: DashboardSale }>("/sales", {
+  request<{
+    message?: string;
+    sale: DashboardSale;
+    lowStockProducts?: Array<{ name: string; quantity: number; minimumQuantity: number }>
+  }>("/sales", {
     method: "POST",
     body: payload,
     headers: {
@@ -391,6 +410,14 @@ export const fetchSaleReminder = (accessToken: string, saleId: string) =>
     },
   });
 
+export const deleteSaleReminder = (accessToken: string, saleId: string) =>
+  request<{ message: string }>(`/sales/${saleId}/reminder`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
 export const buildGoogleAuthUrl = (redirectUri: string) =>
   `${assertApiUrl()}/auth/google?mobile_redirect_uri=${encodeURIComponent(
     redirectUri,
@@ -400,3 +427,38 @@ export const toTokens = (response: Tokens | MobileAuthResponse): Tokens => ({
   accessToken: response.accessToken,
   refreshToken: response.refreshToken,
 });
+
+export const updateBusinessDetails = (
+  accessToken: string,
+  payload: { gstNumber?: string; address?: string },
+) =>
+  request<{ message: string; business: Business }>("/business", {
+    method: "PATCH",
+    body: payload,
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const updateUserDetails = (
+  accessToken: string,
+  payload: { name?: string; email?: string; mobile?: string },
+) =>
+  request<{ message: string; user: User }>("/user", {
+    method: "PATCH",
+    body: payload,
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const deleteCustomer = (accessToken: string, customerId: string) =>
+  request<{ message: string }>(`/customers/${customerId}`, {
+    method: "DELETE",
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });

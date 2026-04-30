@@ -5,10 +5,13 @@ import {
   RefreshControl,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 import { AppLayout } from "../components/AppLayout";
+import { updateBusinessDetails, updateUserDetails } from "../lib/api";
 import { useAuth } from "../providers/AuthProvider";
 import type { AppRoute } from "../types/navigation";
 
@@ -34,6 +37,12 @@ const initialsFor = (name: string) =>
 export const UserDetailPage = ({ onBack, onNavigate }: UserDetailPageProps) => {
   const { session, refreshUser } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditingBusiness, setIsEditingBusiness] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [businessForm, setBusinessForm] = useState({
+    gstNumber: "",
+    address: "",
+  });
 
   const user = session?.user;
   const business = user?.business as
@@ -44,6 +53,72 @@ export const UserDetailPage = ({ onBack, onNavigate }: UserDetailPageProps) => {
         type?: string;
       }
     | undefined;
+
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const [userForm, setUserForm] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+  });
+
+  const handleEditBusiness = () => {
+    if (business) {
+      setBusinessForm({
+        gstNumber: business.gstNumber ?? "",
+        address: business.address ?? "",
+      });
+    }
+    setIsEditingBusiness(true);
+  };
+
+  const handleSaveBusiness = async () => {
+    if (!session?.tokens.accessToken) return;
+    setIsSaving(true);
+    try {
+      await updateBusinessDetails(session.tokens.accessToken, {
+        gstNumber: businessForm.gstNumber,
+        address: businessForm.address,
+      });
+      await refreshUser();
+      setIsEditingBusiness(false);
+      Toast.show({ type: "success", text1: "Business Details Updated" });
+    } catch (err) {
+      Toast.show({ type: "error", text1: "Failed to update business details" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditUser = () => {
+    if (user) {
+      setUserForm({
+        name: user.name ?? "",
+        email: user.email ?? "",
+        mobile: user.mobile ?? "",
+      });
+    }
+    setIsEditingUser(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!session?.tokens.accessToken) return;
+    setIsSavingUser(true);
+    try {
+      await updateUserDetails(session.tokens.accessToken, {
+        name: userForm.name,
+        email: userForm.email,
+        mobile: userForm.mobile,
+      });
+      await refreshUser();
+      setIsEditingUser(false);
+      Toast.show({ type: "success", text1: "Personal Information Updated" });
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: err.message || "Failed to update details" });
+    } finally {
+      setIsSavingUser(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -116,42 +191,176 @@ export const UserDetailPage = ({ onBack, onNavigate }: UserDetailPageProps) => {
             </View>
 
             {/* Personal info */}
-            <InfoCard title="Personal Information">
-              <InfoRow icon="mail" label="Email" value={user.email ?? "-"} />
-              <InfoRow icon="phone" label="Mobile" value={user.mobile ?? "-"} />
-              <InfoRow
-                icon="event"
-                label="Member Since"
-                value={user.createdAt ? formatDate(user.createdAt) : "-"}
-              />
-            </InfoCard>
+            <View className="mb-5 rounded-[28px] border border-black/10 bg-white p-5">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-[16px] font-semibold text-black">Personal Information</Text>
+                {!isEditingUser ? (
+                  <Pressable
+                    onPress={handleEditUser}
+                    className="px-3 py-1.5 rounded-full bg-zinc-100 flex-row items-center gap-1.5"
+                  >
+                    <MaterialIcons name="edit" size={12} color="#000" />
+                    <Text className="text-[11px] font-medium text-black uppercase tracking-wider">Edit</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {isEditingUser ? (
+                <View className="gap-3">
+                  <View>
+                    <Text className="text-[11px] uppercase text-black/40 mb-1 ml-1">Name</Text>
+                    <TextInput
+                      value={userForm.name}
+                      onChangeText={(name) => setUserForm(prev => ({ ...prev, name }))}
+                      className="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-[14px] text-black"
+                      placeholder="Your Full Name"
+                    />
+                  </View>
+                  <View>
+                    <Text className="text-[11px] uppercase text-black/40 mb-1 ml-1">Email</Text>
+                    <TextInput
+                      value={userForm.email}
+                      onChangeText={(email) => setUserForm(prev => ({ ...prev, email }))}
+                      className="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-[14px] text-black"
+                      placeholder="john@example.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                  <View>
+                    <Text className="text-[11px] uppercase text-black/40 mb-1 ml-1">Mobile</Text>
+                    <TextInput
+                      value={userForm.mobile}
+                      onChangeText={(mobile) => setUserForm(prev => ({ ...prev, mobile }))}
+                      className="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-[14px] text-black"
+                      placeholder="e.g. 9876543210"
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                  
+                  <View className="flex-row items-center gap-3 mt-2">
+                    <Pressable
+                      onPress={() => setIsEditingUser(false)}
+                      disabled={isSavingUser}
+                      className="flex-1 py-3 rounded-2xl border border-zinc-200 items-center justify-center"
+                    >
+                      <Text className="text-zinc-600 font-medium">Cancel</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleSaveUser}
+                      disabled={isSavingUser}
+                      className={`flex-1 py-3 rounded-2xl items-center justify-center ${isSavingUser ? 'bg-zinc-300' : 'bg-black'}`}
+                    >
+                      {isSavingUser ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text className="text-white font-medium">Save</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View className="gap-3">
+                  <InfoRow icon="person" label="Name" value={user.name ?? "-"} />
+                  <InfoRow icon="mail" label="Email" value={user.email ?? "-"} />
+                  <InfoRow icon="phone" label="Mobile" value={user.mobile ?? "-"} />
+                  <InfoRow
+                    icon="event"
+                    label="Member Since"
+                    value={user.createdAt ? formatDate(user.createdAt) : "-"}
+                  />
+                </View>
+              )}
+            </View>
 
             {/* Business info */}
             {business ? (
-              <InfoCard title="Business Details">
-                <InfoRow
-                  icon="storefront"
-                  label="Business Name"
-                  value={business.name ?? "-"}
-                />
-                <InfoRow
-                  icon="receipt"
-                  label="GST Number"
-                  value={business.gstNumber ?? "-"}
-                />
-                <InfoRow
-                  icon="location-on"
-                  label="Address"
-                  value={business.address ?? "-"}
-                />
-                {business.type ? (
-                  <InfoRow
-                    icon="business"
-                    label="Business Type"
-                    value={business.type}
-                  />
-                ) : null}
-              </InfoCard>
+              <View className="mb-5 rounded-[28px] border border-black/10 bg-white p-5">
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-[16px] font-semibold text-black">Business Details</Text>
+                  {!isEditingBusiness ? (
+                    <Pressable
+                      onPress={handleEditBusiness}
+                      className="px-3 py-1.5 rounded-full bg-zinc-100 flex-row items-center gap-1.5"
+                    >
+                      <MaterialIcons name="edit" size={12} color="#000" />
+                      <Text className="text-[11px] font-medium text-black uppercase tracking-wider">Edit</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+
+                {isEditingBusiness ? (
+                  <View className="gap-3">
+                    <View>
+                      <Text className="text-[11px] uppercase text-black/40 mb-1 ml-1">GST Number</Text>
+                      <TextInput
+                        value={businessForm.gstNumber}
+                        onChangeText={(gstNumber) => setBusinessForm(prev => ({ ...prev, gstNumber }))}
+                        className="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-[14px] text-black"
+                        placeholder="e.g. 22AAAAA0000A1Z5"
+                        autoCapitalize="characters"
+                      />
+                    </View>
+                    <View>
+                      <Text className="text-[11px] uppercase text-black/40 mb-1 ml-1">Shop Address</Text>
+                      <TextInput
+                        value={businessForm.address}
+                        onChangeText={(address) => setBusinessForm(prev => ({ ...prev, address }))}
+                        className="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-[14px] text-black h-24"
+                        placeholder="Full shop address"
+                        multiline
+                        textAlignVertical="top"
+                      />
+                    </View>
+                    
+                    <View className="flex-row items-center gap-3 mt-2">
+                      <Pressable
+                        onPress={() => setIsEditingBusiness(false)}
+                        disabled={isSaving}
+                        className="flex-1 py-3 rounded-2xl border border-zinc-200 items-center justify-center"
+                      >
+                        <Text className="text-zinc-600 font-medium">Cancel</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={handleSaveBusiness}
+                        disabled={isSaving}
+                        className={`flex-1 py-3 rounded-2xl items-center justify-center ${isSaving ? 'bg-zinc-300' : 'bg-black'}`}
+                      >
+                        {isSaving ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text className="text-white font-medium">Save</Text>
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <View className="gap-3">
+                    <InfoRow
+                      icon="storefront"
+                      label="Business Name"
+                      value={business.name ?? "-"}
+                    />
+                    <InfoRow
+                      icon="receipt"
+                      label="GST Number"
+                      value={business.gstNumber ?? "-"}
+                    />
+                    <InfoRow
+                      icon="location-on"
+                      label="Address"
+                      value={business.address ?? "-"}
+                    />
+                    {business.type ? (
+                      <InfoRow
+                        icon="business"
+                        label="Business Type"
+                        value={business.type}
+                      />
+                    ) : null}
+                  </View>
+                )}
+              </View>
             ) : null}
           </>
         ) : (

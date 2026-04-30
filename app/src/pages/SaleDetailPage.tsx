@@ -101,6 +101,19 @@ export const SaleDetailPage = ({
 
   const handleInvoice = () => {
     if (!sale || !session?.user) return;
+    
+    const business = session.user.business;
+    if (!business?.gstNumber || !business?.address) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Toast.show({ 
+        type: "error", 
+        text1: "Profile Incomplete", 
+        text2: "Please complete your profile by adding GST number and Shop Address to generate invoices.",
+        visibilityTime: 4000
+      });
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     handleGenerateInvoice(sale, session.user);
   };

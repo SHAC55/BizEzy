@@ -12,7 +12,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 import { AppLayout } from "../components/AppLayout";
-import { archiveCustomer, fetchCustomer } from "../lib/api";
+import { archiveCustomer, fetchCustomer, deleteCustomer } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
 import type { CustomerDetail } from "../types/customer";
@@ -59,6 +59,7 @@ export const CustomerDetailPage = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = async (refresh = false) => {
     const token = session?.tokens.accessToken;
@@ -87,14 +88,15 @@ export const CustomerDetailPage = ({
   }, [customerId]);
 
   const handleArchive = () => {
+    const isArchived = !!customer?.archivedAt;
     Alert.alert(
-      "Archive Customer",
-      "This customer will be archived and hidden from your active list.",
+      isArchived ? "Unarchive Customer" : "Archive Customer",
+      isArchived ? "This customer will be restored to your active list." : "This customer will be archived and hidden from your active list.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Archive",
-          style: "destructive",
+          text: isArchived ? "Unarchive" : "Archive",
+          style: isArchived ? "default" : "destructive",
           onPress: async () => {
             const token = session?.tokens.accessToken;
             if (!token) return;
@@ -109,14 +111,50 @@ export const CustomerDetailPage = ({
                 queryClient.invalidateQueries({ queryKey: queryKeys.sales.all }),
               ]);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Toast.show({ type: "success", text1: "Customer Archived" });
+              Toast.show({ type: "success", text1: isArchived ? "Customer Unarchived" : "Customer Archived" });
+              load();
+            } catch (err) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+              const msg = err instanceof Error ? err.message : "Failed to toggle archive";
+              Toast.show({ type: "error", text1: "Action Failed", text2: msg });
+            } finally {
+              setIsArchiving(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Customer",
+      "Are you sure you want to completely delete this customer? This action cannot be undone. Note: You cannot delete a customer if they have existing sales.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const token = session?.tokens.accessToken;
+            if (!token) return;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            try {
+              setIsDeleting(true);
+              await deleteCustomer(token, customerId);
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+              ]);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Toast.show({ type: "success", text1: "Customer Deleted" });
               onBack();
             } catch (err) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              const msg = err instanceof Error ? err.message : "Failed to archive customer";
-              Toast.show({ type: "error", text1: "Archive Failed", text2: msg });
+              const msg = err instanceof Error ? err.message : "Failed to delete customer";
+              Toast.show({ type: "error", text1: "Delete Failed", text2: msg });
             } finally {
-              setIsArchiving(false);
+              setIsDeleting(false);
             }
           },
         },
@@ -147,15 +185,15 @@ export const CustomerDetailPage = ({
           <TopBtn icon="arrow-back" label="Back" onPress={onBack} />
 
           <View className="flex-row gap-2">
-            {!customer?.archivedAt && (
-              <TopBtn
-                icon="archive"
-                label={isArchiving ? "..." : "Archive"}
-                warn
-                onPress={handleArchive}
-              />
-            )}
+            <TopBtn
+              icon="archive"
+              label={isArchiving ? "..." : (customer?.archivedAt ? "Unarchive" : "Archive")}
+              warn={!customer?.archivedAt}
+              dark={!!customer?.archivedAt}
+              onPress={handleArchive}
+            />
 
+            <TopBtn icon="delete-outline" label={isDeleting ? "..." : "Delete"} warn onPress={handleDelete} />
             <TopBtn icon="edit" label="Edit" dark onPress={onEdit} />
           </View>
         </View>
@@ -180,9 +218,16 @@ export const CustomerDetailPage = ({
                 </View>
 
                 <View className="flex-1">
-                  <Text className="text-[21px] font-bold text-white">
-                    {customer.name}
-                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-[21px] font-bold text-white">
+                      {customer.name}
+                    </Text>
+                    {customer.archivedAt && (
+                      <View className="bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
+                        <Text className="text-amber-400 text-[10px] font-bold tracking-widest uppercase">Archived</Text>
+                      </View>
+                    )}
+                  </View>
 
                   <Text className="mt-1 text-[13px] text-white/55">
                     {customer.mobile}

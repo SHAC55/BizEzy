@@ -26,6 +26,7 @@ import { CustomerDetailPage } from "./src/pages/CustomerDetailPage";
 import { LoadingPage } from "./src/pages/LoadingPage";
 import { OnboardingPage } from "./src/pages/OnboardingPage";
 import { ProductDetailPage } from "./src/pages/ProductDetailPage";
+import { RemindersPage } from "./src/pages/RemindersPage";
 import { SaleDetailPage } from "./src/pages/SaleDetailPage";
 import { UserDetailPage } from "./src/pages/UserDetailPage";
 import { queryClient } from "./src/lib/query";
@@ -47,6 +48,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       AddCustomer: "customers/form/:customerId?",
       CustomerDetail: "customers/detail/:customerId",
       UserDetail: "profile",
+      Reminders: "reminders",
     },
   },
 };
@@ -82,6 +84,7 @@ const MainTabsScreen = ({ navigation }: ScreenProps<"MainTabs">) => {
       onOpenAddInventory={() => navigation.navigate("AddInventory")}
       onOpenAddSale={() => navigation.navigate("AddSale")}
       onOpenAddCustomer={() => navigation.navigate("AddCustomer")}
+      onOpenReminders={() => navigation.navigate("Reminders")}
     />
   );
 };
@@ -162,6 +165,13 @@ const UserDetailScreen = ({ navigation }: ScreenProps<"UserDetail">) => (
   />
 );
 
+const RemindersScreen = ({ navigation }: ScreenProps<"Reminders">) => (
+  <RemindersPage
+    onBack={() => navigation.goBack()}
+    onOpenSale={(saleId) => navigation.navigate("SaleDetail", { saleId })}
+  />
+);
+
 const AppNavigator = () => (
   <NavigationContainer linking={linking}>
     <Stack.Navigator
@@ -180,6 +190,7 @@ const AppNavigator = () => (
       <Stack.Screen name="AddCustomer" component={AddCustomerScreen} options={sheetScreenOptions} />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <Stack.Screen name="UserDetail" component={UserDetailScreen} />
+      <Stack.Screen name="Reminders" component={RemindersScreen} />
     </Stack.Navigator>
   </NavigationContainer>
 );

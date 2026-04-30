@@ -25,6 +25,7 @@ export const queryKeys = {
       limit: number;
       search: string;
       status: "all" | "paid" | "partial" | "pending";
+      hasReminder?: boolean;
     }) => ["sales", "list", params] as const,
     detail: (saleId: string) => ["sales", "detail", saleId] as const,
   },
@@ -39,6 +40,7 @@ export const queryKeys = {
       sortBy: "recent" | "name" | "due" | "revenue" | "orders";
       sortOrder: "asc" | "desc";
       recentOnly: boolean;
+      includeArchived: boolean;
     }) => ["customers", "list", params] as const,
     detail: (customerId: string) => ["customers", "detail", customerId] as const,
   },

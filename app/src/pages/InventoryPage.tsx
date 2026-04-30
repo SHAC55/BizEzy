@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import {
   Alert,
@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  Linking,
 } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
@@ -18,7 +19,7 @@ import { AppLayout } from "../components/AppLayout";
 import { SkeletonProductRow } from "../components/Skeleton";
 import { useProductsData } from "../hooks/useProductsData";
 import { useDebounce } from "../hooks/useDebounce";
-import { deleteProduct } from "../lib/api";
+import { deleteProduct, fetchProducts } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
 import type { Product } from "../types/product";
@@ -116,6 +117,38 @@ export const InventoryPage = ({
         },
       ],
     );
+  };
+
+  const handleShareLowStock = async () => {
+    const token = session?.tokens.accessToken;
+    if (!token) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const data = await fetchProducts(token, {
+        page: 1,
+        limit: 100,
+        lowStockOnly: true,
+      });
+      if (data.products.length === 0) {
+        Toast.show({ type: "info", text1: "No Low Stock", text2: "All products are adequately stocked." });
+        return;
+      }
+      
+      const productList = data.products.map(p => `- ${p.name} (Left: ${p.quantity}, Min: ${p.minimumQuantity})`).join("\n");
+      const message = `🚨 *Low Stock Alert*\n\nThe following products are running low on stock and need to be restocked:\n\n${productList}\n\nPlease restock them soon.`;
+      
+      const digits = session?.user?.mobile?.replace(/\D/g, "");
+      const phone = digits?.startsWith("91") && digits.length >= 12 ? digits : (digits ? `91${digits}` : null);
+      
+      const url = phone 
+         ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+         : `whatsapp://send?text=${encodeURIComponent(message)}`;
+         
+      await Linking.openURL(url);
+    } catch (err) {
+      console.log(err);
+      Toast.show({ type: "error", text1: "Failed to share low stock", text2: err instanceof Error ? err.message : "" });
+    }
   };
 
   const stats = [
@@ -278,6 +311,20 @@ export const InventoryPage = ({
           />
         </View>
       </View>
+
+      {/* ── WhatsApp Low Stock Alert ── */}
+      {summary.lowStockCount > 0 && (
+        <Pressable
+          onPress={handleShareLowStock}
+          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: false }}
+          className="flex-row items-center justify-center gap-2.5 bg-[#25D366] rounded-[20px] px-4 py-3.5 mb-4 shadow-sm shadow-emerald-900/10"
+        >
+          <FontAwesome5 name="whatsapp" size={18} color="#fff" />
+          <Text className="text-white font-semibold text-[14px]">
+            Send Restock Reminder ({summary.lowStockCount} items)
+          </Text>
+        </Pressable>
+      )}
 
       {/* Products card top */}
       <View className="rounded-t-[24px] bg-white border border-b-0 border-zinc-100">

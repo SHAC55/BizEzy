@@ -20,6 +20,7 @@ export const useCustomersData = ({
   sortBy = "recent",
   sortOrder = "desc",
   recentOnly = false,
+  includeArchived = false,
 }: {
   page?: number;
   limit?: number;
@@ -28,6 +29,7 @@ export const useCustomersData = ({
   sortBy?: "recent" | "name" | "due" | "revenue" | "orders";
   sortOrder?: "asc" | "desc";
   recentOnly?: boolean;
+  includeArchived?: boolean;
 }) => {
   const { session } = useAuth();
   const accessToken = session?.tokens.accessToken;
@@ -41,6 +43,7 @@ export const useCustomersData = ({
       sortBy,
       sortOrder,
       recentOnly,
+      includeArchived,
     }),
     enabled: Boolean(accessToken),
     queryFn: () =>
@@ -52,7 +55,7 @@ export const useCustomersData = ({
         sortBy,
         sortOrder,
         recentOnly,
-        includeArchived: false,
+        includeArchived,
       }),
   });
 

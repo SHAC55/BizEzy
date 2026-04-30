@@ -27,6 +27,7 @@ type Props = {
   onOpenAddInventory: () => void;
   onOpenAddSale: () => void;
   onOpenAddCustomer: () => void;
+  onOpenReminders: () => void;
 };
 
 const TAB_META = [
@@ -56,6 +57,7 @@ export const MainTabs = ({
   onOpenAddInventory,
   onOpenAddSale,
   onOpenAddCustomer,
+  onOpenReminders,
 }: Props) => {
   const pagerRef = useRef<PagerView>(null);
   const [activePage, setActivePage] = useState(0);
@@ -159,6 +161,7 @@ export const MainTabs = ({
             <SalesPage
               onOpenAddSale={onOpenAddSale}
               onOpenSale={onOpenSale}
+              onOpenReminders={onOpenReminders}
               onNavigate={onNavigate}
             />
           </View>
