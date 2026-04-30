@@ -21,7 +21,7 @@ export const createSaleHandler = catchErrors(async (req, res) => {
   appAssert(userId, UNAUTHORIZED, "not authenticated");
 
   const request = createSaleSchema.parse(req.body);
-  const sale = await createSale({
+  const { sale, lowStockProducts } = await createSale({
     userId,
     ...request,
   });
@@ -29,6 +29,7 @@ export const createSaleHandler = catchErrors(async (req, res) => {
   return res.status(CREATED).json({
     message: "sale created",
     sale,
+    lowStockProducts,
   });
 });
 

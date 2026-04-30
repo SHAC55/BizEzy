@@ -205,6 +205,7 @@ export const createSale = async (data: CreateSaleParams) => {
         businessId: true,
         name: true,
         quantity: true,
+        minimumQuantity: true,
       },
     });
 
@@ -248,11 +249,21 @@ export const createSale = async (data: CreateSaleParams) => {
       })),
     });
 
+    let lowStockItems: Array<{ name: string; quantity: number; minimumQuantity: number }> = [];
+
     for (const item of data.items) {
       const product = productMap.get(item.productId);
       appAssert(product, NOT_FOUND, "product not found");
 
       const quantityAfter = product.quantity - item.quantity;
+
+      if (quantityAfter <= product.minimumQuantity) {
+        lowStockItems.push({
+          name: product.name,
+          quantity: quantityAfter,
+          minimumQuantity: product.minimumQuantity,
+        });
+      }
 
       await transaction.product.update({
         where: {
@@ -288,10 +299,11 @@ export const createSale = async (data: CreateSaleParams) => {
       });
     }
 
-    return sale;
+    return { saleId: sale.id, lowStockItems };
   });
 
-  return getSaleById(data.userId, result.id);
+  const finalSale = await getSaleById(data.userId, result.saleId);
+  return { sale: finalSale, lowStockProducts: result.lowStockItems };
 };
 
 export const getSales = async (data: GetSalesParams) => {
