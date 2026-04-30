@@ -81,7 +81,7 @@ model VerificationCode {
 model Business {
   id        String   @id @default(uuid())
   name      String
-  gstNumber String?
+  gstNumber String?  @unique
   address   String?
   ownerId   Int      @unique
   createdAt DateTime @default(now())
