@@ -2,12 +2,12 @@ import z from "zod";
 import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
 import appAssert from "../utils/appAssert";
 import catchErrors from "../utils/catchErrors";
-import {
   archiveCustomer,
   createCustomer,
   getCustomerById,
   getCustomers,
   updateCustomer,
+  deleteCustomer,
 } from "../services/customer.service";
 import {
   createCustomerSchema,
@@ -87,6 +87,18 @@ export const archiveCustomerHandler = catchErrors(async (req, res) => {
   await archiveCustomer(userId, customerId);
 
   return res.status(OK).json({
-    message: "customer archived",
+    message: "customer archived status toggled",
+  });
+});
+
+export const deleteCustomerHandler = catchErrors(async (req, res) => {
+  const userId = req.userId;
+  appAssert(userId, UNAUTHORIZED, "not authenticated");
+
+  const customerId = z.string().uuid().parse(req.params.id);
+  await deleteCustomer(userId, customerId);
+
+  return res.status(OK).json({
+    message: "customer deleted",
   });
 });

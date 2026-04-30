@@ -1,7 +1,7 @@
 import type { Prisma } from "../generated/prisma/client";
 import { prisma } from "../config/db";
 import { customerSelect } from "../constants/customer";
-import { NOT_FOUND } from "../constants/http";
+import { NOT_FOUND, CONFLICT } from "../constants/http";
 import appAssert from "../utils/appAssert";
 
 export type CreateCustomerParams = {
@@ -362,14 +362,27 @@ export const updateCustomer = async (data: UpdateCustomerParams) => {
 export const archiveCustomer = async (userId: number, customerId: string) => {
   const customer = await getOwnedCustomer(userId, customerId);
 
-  if (customer.archivedAt) {
-    return;
-  }
-
   await prisma.customer.update({
     where: { id: customer.id },
     data: {
-      archivedAt: new Date(),
+      archivedAt: customer.archivedAt ? null : new Date(),
     },
+  });
+};
+
+export const deleteCustomer = async (userId: number, customerId: string) => {
+  const customer = await getOwnedCustomer(userId, customerId);
+
+  // Check if they have sales
+  const salesCount = await prisma.sale.count({
+    where: { customerId: customer.id }
+  });
+
+  if (salesCount > 0) {
+    appAssert(false, CONFLICT, "Cannot delete customer with existing sales. Please archive them instead.");
+  }
+
+  await prisma.customer.delete({
+    where: { id: customer.id },
   });
 };
