@@ -4,7 +4,7 @@ import { Shield, Mail, Lock, Eye, FileText, CheckCircle } from "lucide-react";
 const Privacy = () => {
   const policySections = [
     {
-      icon: <Eye className="w-6 h-6 text-indigo-600" />,
+      icon: <Eye className="w-5 h-5" />,
       title: "Information We Collect",
       description:
         "When you join our waitlist or contact us, we may collect your email address and basic contact information to provide you with the best service experience.",
@@ -15,7 +15,7 @@ const Privacy = () => {
       ],
     },
     {
-      icon: <Mail className="w-6 h-6 text-indigo-600" />,
+      icon: <Mail className="w-5 h-5" />,
       title: "How We Use Your Information",
       description:
         "Your information helps us improve our services and keep you informed about important updates and opportunities.",
@@ -27,7 +27,7 @@ const Privacy = () => {
       ],
     },
     {
-      icon: <Lock className="w-6 h-6 text-indigo-600" />,
+      icon: <Lock className="w-5 h-5" />,
       title: "Data Protection & Security",
       description:
         "We implement industry-standard security measures to protect your personal data from unauthorized access or disclosure.",
@@ -39,7 +39,7 @@ const Privacy = () => {
       ],
     },
     {
-      icon: <Shield className="w-6 h-6 text-indigo-600" />,
+      icon: <Shield className="w-5 h-5" />,
       title: "Your Privacy Rights",
       description:
         "You have full control over your personal information and can exercise your privacy rights at any time.",
@@ -53,93 +53,106 @@ const Privacy = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/30">
-      {/* Header Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white pb-8">
-        <div className="absolute inset-0 bg-black/10" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl" />
-        
-        <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-24">
-          <div className="flex items-center gap-3 mb-4">
-            <Shield className="w-8 h-8 text-indigo-200" />
-            <span className="text-indigo-200 font-medium tracking-wider">PRIVACY & SECURITY</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 max-w-3xl leading-tight">
-            Your Privacy is Our
-            <span className="text-indigo-200 block mt-2">Top Priority</span>
-          </h1>
-          <p className="text-lg md:text-xl text-indigo-100 max-w-2xl leading-relaxed">
-            We're committed to protecting your personal information and being transparent about how we use it.
-          </p>
+    <div className="min-h-screen w-full bg-white font-sans">
+      {/* ── Hero ── */}
+      <div className="relative bg-black text-white px-12 pt-16 pb-20 overflow-hidden">
+        {/* Decorative circles */}
+        <div className="absolute -top-28 -right-28 w-96 h-96 rounded-full border border-white/5" />
+        <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full border border-white/[0.04]" />
+
+        {/* Chip */}
+        <div className="inline-flex items-center gap-2 border border-white/20 rounded-full px-4 py-1.5 mb-7">
+          <span className="w-1.5 h-1.5 rounded-full bg-white" />
+          <span className="text-[11px] tracking-[.1em] uppercase text-white/60 font-medium">
+            Privacy &amp; Security
+          </span>
         </div>
 
-        {/* Decorative Wave */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg className="w-full h-auto" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" fillOpacity="1"/>
-          </svg>
-        </div>
+        <h1
+          className="text-5xl lg:text-6xl font-medium leading-[1.05] tracking-tight max-w-lg mb-5"
+          style={{ letterSpacing: "-1.5px" }}
+        >
+          Your privacy is{" "}
+          <span className="text-white/35">our top priority.</span>
+        </h1>
+
+        <p className="text-[15px] text-white/50 leading-relaxed max-w-md">
+          We're committed to protecting your personal information and being
+          fully transparent about how it's used.
+        </p>
+
+        <div className="mt-10 h-px bg-white/10" />
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
-        {/* Last Updated Badge */}
-        <div className="flex justify-between items-center mb-12">
-          <div className="flex items-center gap-2 text-gray-600 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
-            <FileText className="w-4 h-4 text-indigo-600" />
-            <span className="text-sm font-medium">Last Updated: March 11, 2026</span>
+      {/* ── Body ── */}
+      <div className="px-12 py-12">
+        {/* Meta row */}
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-10">
+          <div className="inline-flex items-center gap-2 border border-zinc-200 rounded-full px-4 py-1.5 text-[12px] font-medium text-zinc-500">
+            <FileText className="w-3.5 h-3.5 text-zinc-400" />
+            Last updated: March 11, 2026
           </div>
-          <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full">
-            <CheckCircle className="w-4 h-4" />
-            <span className="text-sm font-medium">GDPR Compliant</span>
+          <div className="inline-flex items-center gap-1.5 bg-black text-white rounded-full px-4 py-1.5 text-[12px] font-medium">
+            <CheckCircle className="w-3.5 h-3.5" />
+            GDPR compliant
           </div>
         </div>
 
-        {/* Introduction Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Shield className="w-6 h-6 text-indigo-600" />
+        {/* Intro card */}
+        <div className="border border-zinc-200 rounded-2xl p-8 mb-10">
+          <div className="flex items-start gap-5">
+            <div className="w-11 h-11 bg-black rounded-xl flex items-center justify-center flex-shrink-0">
+              <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-3">
-                Our Commitment to Privacy
+              <h2 className="text-lg font-medium text-zinc-900 mb-2">
+                Our commitment to privacy
               </h2>
-              <p className="text-gray-600 leading-relaxed">
-                At BizEzy, we believe that privacy is a fundamental right. This policy 
-                outlines how we collect, use, and protect your information. We've designed 
-                our practices to be transparent and give you control over your data.
+              <p className="text-[14px] text-zinc-500 leading-relaxed">
+                At BizEzy, we believe that privacy is a fundamental right. This
+                policy outlines how we collect, use, and protect your
+                information. We've designed our practices to be transparent and
+                give you full control over your data at all times.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Policy Sections Grid */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
+        {/* Policy sections — flush grid with 1px separators */}
+        <div className="grid md:grid-cols-2 border border-zinc-200 rounded-2xl overflow-hidden divide-x divide-y divide-zinc-200 mb-10">
           {policySections.map((section, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div key={index} className="p-7 bg-white">
+              <div className="flex items-start gap-3.5 mb-4">
+                <div className="w-9 h-9 border border-zinc-200 rounded-lg flex items-center justify-center flex-shrink-0 text-zinc-800">
                   {section.icon}
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-[15px] font-medium text-zinc-900 mt-1.5 leading-snug">
                   {section.title}
                 </h3>
               </div>
-              
-              <p className="text-gray-600 mb-6 leading-relaxed">
+
+              <p className="text-[13px] text-zinc-500 leading-relaxed mb-5">
                 {section.description}
               </p>
 
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {section.details.map((detail, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-gray-600">
-                    <CheckCircle className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
-                    <span>{detail}</span>
+                  <li
+                    key={idx}
+                    className="flex items-start gap-2.5 text-[13px] text-zinc-500"
+                  >
+                    <svg
+                      className="w-4 h-4 flex-shrink-0 mt-0.5 text-zinc-900"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    {detail}
                   </li>
                 ))}
               </ul>
@@ -147,22 +160,26 @@ const Privacy = () => {
           ))}
         </div>
 
-        {/* Additional Information */}
-        <div className="bg-indigo-50 rounded-2xl p-8 border border-indigo-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Questions About Your Privacy?
-          </h3>
-          <p className="text-gray-700 mb-6">
-            If you have any questions or concerns about how we handle your data, 
-            our privacy team is here to help. We typically respond within 24-48 hours.
-          </p>
-          <button className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/25">
-           bizezystartup@gmail.com
-          </button>
+        {/* CTA row */}
+        <div className="border border-zinc-200 rounded-2xl p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <h3 className="text-[16px] font-medium text-zinc-900 mb-1.5">
+              Questions about your privacy?
+            </h3>
+            <p className="text-[13px] text-zinc-500 leading-relaxed max-w-md">
+              If you have any concerns about how we handle your data, our
+              privacy team is ready to help. We typically respond within 24–48
+              hours.
+            </p>
+          </div>
+          <a
+            href="mailto:bizezyapp@gmail.com"
+            className="inline-flex items-center gap-2 bg-black text-white px-5 py-3 rounded-xl text-[13px] font-medium whitespace-nowrap hover:bg-zinc-800 transition-colors"
+          >
+            <Mail className="w-4 h-4 opacity-50" />
+            bizezystartup@gmail.com
+          </a>
         </div>
-
-        {/* Footer Links */}
-       
       </div>
     </div>
   );

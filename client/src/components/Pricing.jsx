@@ -1,447 +1,254 @@
-import React, { useEffect, useRef, useState } from "react";
-
-const Icon = ({ d, size = 20, stroke = "currentColor", strokeWidth = 1.8 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={stroke}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    {Array.isArray(d) ? (
-      d.map((path, i) => <path key={i} d={path} />)
-    ) : (
-      <path d={d} />
-    )}
-  </svg>
-);
+import React, { useState } from "react";
 
 const CHECK = "M20 6 9 17 4 12";
 const CROSS = "M18 6 6 18M6 6l12 12";
 const ARROW = "M5 12h14M13 6l6 6-6 6";
-const STAR =
-  "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
-const ZAP = "M13 2 3 14h9l-1 8 10-12h-9l1-8z";
 
-const Feature = ({ text, included, accent = "#2563eb" }) => (
-  <li className="flex items-start gap-2.5 text-[13px]">
-    <span
-      className={`mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center`}
-      style={{ background: included ? accent + "18" : "#f4f4f5" }}
-    >
+const Icon = ({ d, size = 14, stroke = "currentColor", strokeWidth = 2.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+  </svg>
+);
+
+const Feature = ({ text, included }) => (
+  <li style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+    color: included ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
+    textDecoration: included ? "none" : "line-through",
+  }}>
+    <span style={{ width: 14, height: 14, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Icon
         d={included ? CHECK : CROSS}
-        size={9}
-        stroke={included ? accent : "#a1a1aa"}
+        stroke={included ? "#fff" : "rgba(255,255,255,0.2)"}
         strokeWidth={2.8}
       />
     </span>
-    <span
-      className={
-        included
-          ? "text-zinc-700"
-          : "text-zinc-400 line-through decoration-zinc-300"
-      }
-    >
-      {text}
-    </span>
+    {text}
   </li>
 );
 
 const Pricing = () => {
-  const [visible, setVisible] = useState(false);
   const [annual, setAnnual] = useState(false);
-  const ref = useRef(null);
 
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
-      { threshold: 0.1 },
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
+  const css = `
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Syne:wght@400;600;700;800&display=swap');
 
-  const plans = [
-    {
-      name: "Free",
-      badge: null,
-      price: 0,
-      originalPrice: null,
-      period: "forever",
-      desc: "Perfect for getting started and trying out BizEzy with no commitment.",
-      accent: "#64748b",
-      tagBg: "#f8fafc",
-      tagColor: "#64748b",
-      border: "border-zinc-200",
-      bg: "bg-white",
-      ctaStyle: "bg-zinc-100 hover:bg-zinc-200 text-zinc-800",
-      cta: "Get Started Free",
-      features: [
-        { text: "Up to 50 customers", included: true },
-        { text: "Up to 100 sales/month", included: true },
-        { text: "Basic inventory (50 items)", included: true },
-        { text: "Payment tracking", included: true },
-        { text: "Basic dashboard", included: true },
-        { text: "Invoice generation", included: false },
-        { text: "WhatsApp reminders", included: false },
-        { text: "Low stock alerts", included: false },
-        { text: "Unlimited customers", included: false },
-        { text: "Unlimited sales", included: false },
-      ],
-    },
-    {
-      name: "Pro",
-      badge: "Most Popular",
-      price: annual ? 39 : 49,
-      originalPrice: annual ? 49 : 99,
-      period: annual ? "/ mo · billed yearly" : "/ month",
-      desc: "Everything your business needs — payments, invoices, inventory, and automation.",
-      accent: "#2563eb",
-      tagBg: "#eff4ff",
-      tagColor: "#2563eb",
-      border: "border-blue-500",
-      bg: "bg-white",
-      ctaStyle:
-        "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-200",
-      cta: "Start Free — 2 Months On Us",
-      features: [
-        { text: "Unlimited customers", included: true },
-        { text: "Unlimited sales", included: true },
-        { text: "Unlimited inventory items", included: true },
-        { text: "Payment tracking", included: true },
-        { text: "Advanced dashboard", included: true },
-        { text: "Invoice generation (PDF)", included: true },
-        { text: "WhatsApp auto-reminders", included: true },
-        { text: "Low stock alerts (WhatsApp)", included: true },
-        { text: "Customer records & history", included: true },
-        { text: "Analytics & reports", included: true },
-      ],
-    },
+    .pz2-section { position: relative; background: #000; padding: 80px 24px 100px; overflow: hidden; font-family: 'Syne', sans-serif; }
+    .pz2-serif { font-family: 'Fraunces', Georgia, serif; }
+    .pz2-sans { font-family: 'Syne', sans-serif; }
+
+    .pz2-header { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 24px; margin-bottom: 60px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    @media (max-width: 640px) { .pz2-header { grid-template-columns: 1fr; } }
+
+    .pz2-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .pz2-eyebrow::before { content: ''; display: inline-block; width: 24px; height: 1.5px; background: #fff; }
+
+    .pz2-h2 { font-family: 'Fraunces', Georgia, serif; font-size: clamp(38px, 6vw, 62px); font-weight: 300; line-height: 1.0; letter-spacing: -0.02em; color: #fff; }
+    .pz2-h2 em { font-style: italic; color: rgba(255,255,255,0.5); }
+
+    .pz2-launch-pill { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: #000; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 16px; border-radius: 2px; }
+    .pz2-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.4); animation: pz2-blink 2s ease-in-out infinite; }
+    @keyframes pz2-blink { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+    .pz2-toggle { width: 40px; height: 22px; border-radius: 100px; border: none; cursor: pointer; position: relative; flex-shrink: 0; transition: background .3s; }
+    .pz2-knob { position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%; transition: transform .3s; }
+
+    .pz2-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden; }
+    @media (max-width: 640px) { .pz2-cards { grid-template-columns: 1fr; } }
+
+    .pz2-card { padding: 36px 32px; display: flex; flex-direction: column; transition: background .3s; }
+    .pz2-card-free { background: #111; border-right: 1px solid rgba(255,255,255,0.1); }
+    @media (max-width: 640px) { .pz2-card-free { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); } }
+    .pz2-card-pro { background: #1a1a1a; }
+    .pz2-card-pro:hover { background: #222; }
+
+    .pz2-cta-free { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 24px; border-radius: 3px; font-family: 'Syne', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; background: transparent; border: 1.5px solid rgba(255,255,255,0.2); color: #fff; transition: all .2s; width: 100%; }
+    .pz2-cta-free:hover { background: rgba(255,255,255,0.07); border-color: #fff; }
+
+    .pz2-cta-pro { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 24px; border-radius: 3px; font-family: 'Syne', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; background: #fff; border: none; color: #000; transition: all .2s; width: 100%; }
+    .pz2-cta-pro:hover { background: #e0e0e0; transform: translateY(-1px); }
+
+    .pz2-why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+    @media (max-width: 640px) { .pz2-why { grid-template-columns: 1fr; } }
+    .pz2-why-card { padding: 24px 22px; border-right: 1px solid rgba(255,255,255,0.1); }
+    .pz2-why-card:last-child { border-right: none; }
+    @media (max-width: 640px) { .pz2-why-card { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); } .pz2-why-card:last-child { border-bottom: none; } }
+
+    .pz2-trust-check { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    .pz2-fade-up { opacity: 0; transform: translateY(20px); animation: pz2-fadeup .7s ease forwards; }
+    .pz2-d1 { animation-delay: 0s; }
+    .pz2-d2 { animation-delay: .1s; }
+    .pz2-d3 { animation-delay: .2s; }
+    .pz2-d4 { animation-delay: .3s; }
+    .pz2-d5 { animation-delay: .4s; }
+    @keyframes pz2-fadeup { to { opacity: 1; transform: translateY(0); } }
+  `;
+
+  const freeFeatures = [
+    { text: "Up to 50 customers", included: true },
+    { text: "Up to 100 sales / month", included: true },
+    { text: "Basic inventory (50 items)", included: true },
+    { text: "Payment tracking", included: true },
+    { text: "Basic dashboard", included: true },
+    { text: "Invoice generation", included: false },
+    { text: "WhatsApp reminders", included: false },
+    { text: "Low stock alerts", included: false },
+    { text: "Unlimited customers & sales", included: false },
   ];
 
+  const proFeatures = [
+    { text: "Unlimited customers", included: true },
+    { text: "Unlimited sales", included: true },
+    { text: "Unlimited inventory items", included: true },
+    { text: "Payment tracking", included: true },
+    { text: "Advanced dashboard & analytics", included: true },
+    { text: "Invoice generation (PDF)", included: true },
+    { text: "WhatsApp auto-reminders", included: true },
+    { text: "Low stock alerts (WhatsApp)", included: true },
+    { text: "Customer records & history", included: true },
+  ];
+
+  const whyItems = [
+    { num: "01", title: "Auto WhatsApp Reminders", desc: "Never chase payments manually — reminders go out automatically on due dates." },
+    { num: "02", title: "GST Invoice Generation", desc: "Create and share professional PDF invoices in seconds via WhatsApp or email." },
+    { num: "03", title: "Low Stock Alerts", desc: "Get instant WhatsApp alerts when products run low — restock before you run out." },
+  ];
+
+  const proPrice = annual ? 39 : 49;
+  const origPrice = annual ? 49 : 99;
+  const pricePeriod = annual ? "/ mo · billed yearly" : "/ month";
+  const offerLabel = annual ? "20% OFF — Annual Plan" : "50% OFF — Launch Offer";
+
   return (
-    <section className="relative bg-[#f9f9f8] py-24 px-6 overflow-hidden">
-      {/* Bg glow */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(37,99,235,0.055) 0%, transparent 65%)",
-        }}
-      />
+    <section className="pz2-section pz2-sans">
+      <style>{css}</style>
 
-      <div
-        ref={ref}
-        className={`relative z-10 max-w-4xl mx-auto transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
-      >
-        {/* ── Header ── */}
-        <div className="text-center max-w-xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200/80 rounded-full px-4 py-1.5 mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-            <span className="text-[11px] font-semibold text-blue-700 tracking-widest uppercase">
-              Simple Pricing
-            </span>
-          </div>
-          <h2
-            className="text-[clamp(30px,5vw,48px)] font-semibold text-zinc-900 leading-[1.1] mb-4"
-            style={{
-              letterSpacing: "-1.5px",
-              fontFamily: "Georgia, 'Times New Roman', serif",
-            }}
-          >
-            Start free, scale
-            <br />
-            <em className="text-blue-600 not-italic">when you're ready.</em>
-          </h2>
-          <p className="text-[14.5px] text-zinc-500 leading-relaxed max-w-md mx-auto">
-            No hidden fees. No credit card required. Get all Pro features free
-            for 2 months on registration.
-          </p>
-        </div>
+      <div style={{ position: "absolute", top: -100, right: -80, width: 500, height: 500, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.05)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -60, left: -100, width: 400, height: 400, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.05)", pointerEvents: "none" }} />
 
-        {/* ── Launch Banner ── */}
-        <div
-          className={`flex items-center gap-3 bg-zinc-900 text-white rounded-2xl px-5 py-4 mb-8 transition-all duration-700 delay-100 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-        >
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
-            <Icon d={ZAP} size={16} stroke="white" strokeWidth={2} />
+      <div style={{ maxWidth: 960, margin: "0 auto", position: "relative", zIndex: 2 }}>
+
+        {/* Header */}
+        <div className="pz2-header pz2-fade-up pz2-d1">
+          <div>
+            <div className="pz2-eyebrow">Simple Pricing</div>
+            <h2 className="pz2-h2">Start free,<br />scale <em>when ready.</em></h2>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold leading-tight">
-              🎉 Launch Offer — 2 Months Completely Free
-            </div>
-            <div className="text-[12px] text-white/50 mt-0.5">
-              Register today and get full Pro access free for 60 days. No card
-              needed.
-            </div>
-          </div>
-          <div className="shrink-0 hidden sm:block">
-            <div className="text-[10px] text-white/40 uppercase tracking-widest mb-0.5 text-right">
-              Limited time
-            </div>
-            <div className="text-[13px] font-bold text-blue-400">
-              Grab it free →
-            </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, maxWidth: 220, textAlign: "right" }}>
+              No hidden fees. No credit card required. All Pro features free for 2 months on registration.
+            </p>
           </div>
         </div>
 
-        {/* ── Toggle ── */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <span
-            className={`text-[13px] font-medium transition-colors ${!annual ? "text-zinc-900" : "text-zinc-400"}`}
-          >
-            Monthly
-          </span>
-          <button
-            onClick={() => setAnnual((a) => !a)}
-            className="relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none"
-            style={{ background: annual ? "#2563eb" : "#d4d4d8" }}
-          >
-            <span
-              className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300"
-              style={{
-                transform: annual ? "translateX(22px)" : "translateX(2px)",
-              }}
-            />
-          </button>
-          <span
-            className={`text-[13px] font-medium transition-colors ${annual ? "text-zinc-900" : "text-zinc-400"}`}
-          >
-            Yearly
-          </span>
-          {annual && (
-            <span className="text-[10.5px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
-              Save 20%
-            </span>
-          )}
-        </div>
-
-        {/* ── Plans ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-          {plans.map((plan, pi) => (
-            <div
-              key={pi}
-              className={`
-                relative flex flex-col rounded-2xl border-2 ${plan.border} ${plan.bg} overflow-hidden
-                transition-all duration-500
-                ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}
-                ${plan.badge ? "shadow-xl shadow-blue-100" : "shadow-sm"}
-              `}
-              style={{ transitionDelay: `${pi * 120}ms` }}
+        {/* Toggle Row */}
+        <div className="pz2-fade-up pz2-d2" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+          <div className="pz2-launch-pill">
+            <span className="pz2-dot" />
+            🎉 Launch — 2 Months Free
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <span style={{ color: !annual ? "#fff" : "rgba(255,255,255,0.35)", transition: "color .2s" }}>Monthly</span>
+            <button
+              className="pz2-toggle"
+              style={{ background: annual ? "#fff" : "rgba(255,255,255,0.15)" }}
+              onClick={() => setAnnual(a => !a)}
             >
-              {/* Popular badge */}
-              {plan.badge && (
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 24 24"
-                      fill="#fbbf24"
-                      stroke="#fbbf24"
-                      strokeWidth="1"
-                    >
-                      <path d={STAR} />
-                    </svg>
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
+              <div className="pz2-knob" style={{ transform: annual ? "translateX(21px)" : "translateX(3px)", background: annual ? "#000" : "#666" }} />
+            </button>
+            <span style={{ color: annual ? "#fff" : "rgba(255,255,255,0.35)", transition: "color .2s" }}>Yearly</span>
+            {annual && (
+              <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", background: "#fff", color: "#000", padding: "3px 8px", borderRadius: 2 }}>
+                Save 20%
+              </span>
+            )}
+          </div>
+        </div>
 
-              <div className="p-7 flex flex-col flex-1">
-                {/* Plan name + icon */}
-                <div className="flex items-center gap-2.5 mb-5">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: plan.tagBg }}
-                  >
-                    <Icon
-                      d={
-                        plan.name === "Free"
-                          ? "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                          : ZAP
-                      }
-                      size={16}
-                      stroke={plan.accent}
-                      strokeWidth={2}
-                    />
-                  </div>
-                  <span
-                    className="text-[13px] font-bold uppercase tracking-widest"
-                    style={{ color: plan.accent }}
-                  >
-                    {plan.name}
-                  </span>
-                </div>
+        {/* Cards */}
+        <div className="pz2-cards pz2-fade-up pz2-d3" style={{ marginBottom: 32 }}>
+          {/* Free */}
+          <div className="pz2-card pz2-card-free">
+            <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 20 }}>
+              For individuals
+            </div>
+            <div className="pz2-serif" style={{ fontSize: 42, fontWeight: 300, letterSpacing: "-0.02em", lineHeight: 1, color: "#fff", marginBottom: 6 }}>
+              Free
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+              <div className="pz2-serif" style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1, color: "#fff" }}>₹0</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>/ forever</div>
+            </div>
+            <div style={{ height: 25, marginBottom: 16 }} />
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              Perfect for getting started and trying out BizEzy with no commitment.
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 11, flex: 1, marginBottom: 32 }}>
+              {freeFeatures.map((f, i) => <Feature key={i} {...f} />)}
+            </ul>
+            <button className="pz2-cta-free">
+              Get Started Free <Icon d={ARROW} stroke="currentColor" />
+            </button>
+          </div>
 
-                {/* Price */}
-                <div className="mb-1 flex items-end gap-2">
-                  {plan.originalPrice && (
-                    <span className="text-[18px] font-semibold text-zinc-300 line-through mb-0.5">
-                      ₹{plan.originalPrice}
-                    </span>
-                  )}
-                  <span
-                    className="text-[44px] font-bold text-zinc-900 leading-none tracking-tight"
-                    style={{ fontFamily: "Georgia, serif" }}
-                  >
-                    {plan.price === 0 ? "Free" : `₹${plan.price}`}
-                  </span>
-                  {plan.price > 0 && (
-                    <span className="text-[12.5px] text-zinc-400 mb-2">
-                      {plan.period}
-                    </span>
-                  )}
-                </div>
+          {/* Pro */}
+          <div className="pz2-card pz2-card-pro">
+            <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+              For growing businesses
+              <span style={{ background: "#fff", color: "#000", padding: "3px 8px", borderRadius: 2, fontSize: 8, fontWeight: 800 }}>★ Popular</span>
+            </div>
+            <div className="pz2-serif" style={{ fontSize: 42, fontWeight: 300, letterSpacing: "-0.02em", lineHeight: 1, color: "#fff", marginBottom: 6 }}>
+              Pro
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.3)", textDecoration: "line-through" }}>₹{origPrice}</span>
+              <div className="pz2-serif" style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1, color: "#fff" }}>₹{proPrice}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{pricePeriod}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ display: "inline-flex", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 2, background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.65)" }}>
+                {offerLabel}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, marginBottom: 28, paddingBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+              Everything your business needs — payments, invoices, inventory, and automation.
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 11, flex: 1, marginBottom: 32 }}>
+              {proFeatures.map((f, i) => <Feature key={i} {...f} />)}
+            </ul>
+            <button className="pz2-cta-pro">
+              Start Free — 2 Months On Us <Icon d={ARROW} stroke="currentColor" />
+            </button>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: 12 }}>
+              First 2 months free · Cancel anytime
+            </p>
+          </div>
+        </div>
 
-                {plan.originalPrice && !annual && (
-                  <div className="inline-flex items-center gap-1.5 mb-4">
-                    <span className="text-[11px] font-bold bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">
-                      50% OFF — Launch Offer
-                    </span>
-                  </div>
-                )}
-
-                <p className="text-[13px] text-zinc-500 leading-relaxed mb-6">
-                  {plan.desc}
-                </p>
-
-                {/* Features */}
-                <ul className="space-y-2.5 mb-8 flex-1">
-                  {plan.features.map((f, fi) => (
-                    <Feature
-                      key={fi}
-                      text={f.text}
-                      included={f.included}
-                      accent={plan.accent}
-                    />
-                  ))}
-                </ul>
-
-                {/* CTA */}
-                <button
-                  className={`w-full py-3.5 rounded-xl text-[14px] font-semibold transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 ${plan.ctaStyle}`}
-                >
-                  {plan.cta}
-                  <Icon
-                    d={ARROW}
-                    size={14}
-                    stroke="currentColor"
-                    strokeWidth={2.2}
-                  />
-                </button>
-
-                {plan.name === "Pro" && (
-                  <p className="text-[11px] text-zinc-400 text-center mt-3">
-                    First 2 months free · Cancel anytime
-                  </p>
-                )}
-              </div>
+        {/* Why upgrade */}
+        <div className="pz2-why pz2-fade-up pz2-d4" style={{ marginBottom: 32 }}>
+          {whyItems.map((item, i) => (
+            <div key={i} className="pz2-why-card">
+              <div className="pz2-serif" style={{ fontSize: 36, fontWeight: 300, color: "rgba(255,255,255,0.15)", lineHeight: 1, marginBottom: 10 }}>{item.num}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#fff", marginBottom: 8 }}>{item.title}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.65 }}>{item.desc}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Comparison note ── */}
-        <div
-          className={`bg-white border border-zinc-200 rounded-2xl p-6 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Icon
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"
-              size={16}
-              stroke="#2563eb"
-              strokeWidth={2}
-            />
-            <span className="text-[12px] font-bold text-zinc-700 uppercase tracking-widest">
-              Why upgrade to Pro?
-            </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              {
-                icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
-                color: "#16a34a",
-                bg: "#f0fdf4",
-                title: "Auto WhatsApp Reminders",
-                desc: "Never chase payments manually again — reminders go out automatically on due dates.",
-              },
-              {
-                icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8",
-                color: "#0d9488",
-                bg: "#f0fdfa",
-                title: "GST Invoice Generation",
-                desc: "Create and share professional PDF invoices in seconds via WhatsApp or email.",
-              },
-              {
-                icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12",
-                color: "#ea580c",
-                bg: "#fff7ed",
-                title: "Low Stock WhatsApp Alerts",
-                desc: "Get instant alerts when products run low — restock before you run out.",
-              },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                  style={{ background: item.bg }}
-                >
-                  <Icon
-                    d={item.icon}
-                    size={14}
-                    stroke={item.color}
-                    strokeWidth={1.9}
-                  />
-                </div>
-                <div>
-                  <div className="text-[12.5px] font-semibold text-zinc-800 mb-0.5">
-                    {item.title}
-                  </div>
-                  <div className="text-[11.5px] text-zinc-500 leading-relaxed">
-                    {item.desc}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Bottom reassurance ── */}
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-8">
-          {[
-            "No credit card required",
-            "Cancel anytime",
-            "2 months free on registration",
-            "Instant setup",
-          ].map((t, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-1.5 text-[12.5px] text-zinc-400"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#22c55e"
-                strokeWidth="2.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+        {/* Trust strip */}
+        <div className="pz2-fade-up pz2-d5" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px 0" }}>
+          {["No credit card required", "Cancel anytime", "2 months free on registration", "Instant setup"].map((t, i, arr) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "rgba(255,255,255,0.4)", padding: "0 20px", borderRight: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.1)" : "none" }}>
+              <span className="pz2-trust-check">
+                <Icon d={CHECK} size={8} stroke="rgba(255,255,255,0.5)" strokeWidth={3} />
+              </span>
               {t}
             </div>
           ))}
         </div>
+
       </div>
     </section>
   );
