@@ -33,13 +33,13 @@ export const FormBottomSheet = ({
   }, []);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
+    const timer = setTimeout(() => {
       if (!isUnmounting.current) {
         modalRef.current?.present();
       }
-    });
+    }, 100);
 
-    return () => cancelAnimationFrame(frame);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleDismiss = () => {
