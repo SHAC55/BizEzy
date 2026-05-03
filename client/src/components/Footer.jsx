@@ -30,7 +30,33 @@ const Footer = () => {
                 }`
               }
             >
-              Privacy & Policy
+              Privacy Policy
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gray-400 transition-all group-hover:w-full"></span>
+            </NavLink>
+            <NavLink
+              to="/terms"
+              className={({ isActive }) =>
+                `text-sm font-medium transition-all duration-300 relative group ${
+                  isActive
+                    ? "text-gray-300"
+                    : "text-gray-400 hover:text-gray-300"
+                }`
+              }
+            >
+              Terms
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gray-400 transition-all group-hover:w-full"></span>
+            </NavLink>
+            <NavLink
+              to="/refund-policy"
+              className={({ isActive }) =>
+                `text-sm font-medium transition-all duration-300 relative group ${
+                  isActive
+                    ? "text-gray-300"
+                    : "text-gray-400 hover:text-gray-300"
+                }`
+              }
+            >
+              Refund Policy
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gray-400 transition-all group-hover:w-full"></span>
             </NavLink>
           </div>

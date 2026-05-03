@@ -9,6 +9,8 @@ import {
   PublicOnlyRoute,
 } from "./components/ProtectedRoute";
 import Profile from "./pages/Profile";
+import RefundPolicy from "./pages/RefundPolicy";
+import Terms from "./pages/Terms";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -45,6 +47,9 @@ const App = () => {
     "/password/reset",
     "/add-customer",
     "/add-transaction",
+    "/privacy",
+    "/refund-policy",
+    "/terms",
 
   ];
 
@@ -79,6 +84,24 @@ const App = () => {
             element={
               <PublicOnlyRoute>
                 <SignIn />
+              </PublicOnlyRoute>
+            }
+          />
+
+          <Route
+            path="/refund-policy"
+            element={
+              <PublicOnlyRoute>
+                <RefundPolicy />
+              </PublicOnlyRoute>
+            }
+          />
+
+          <Route
+            path="/terms"
+            element={
+              <PublicOnlyRoute>
+                <Terms />
               </PublicOnlyRoute>
             }
           />

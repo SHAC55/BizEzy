@@ -7,6 +7,21 @@ const Icon = ({ d, size = 20, stroke = "currentColor", strokeWidth = 1.8 }) => (
   </svg>
 );
 
+const AppleIcon = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.14-2.19 1.28-2.17 3.81.03 3.02 2.65 4.03 2.68 4.04l-.06.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" fill="white"/>
+  </svg>
+);
+
+const PlayStoreIcon = () => (
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3.18 23.76c.3.17.64.24.99.19L14.9 12 11.1 8.2 3.18 23.76z" fill="#EA4335"/>
+    <path d="M20.96 10.27L17.6 8.34 13.5 12l4.1 4.1 3.37-1.93c.96-.55.96-1.45-.01-2z" fill="#FBBC04"/>
+    <path d="M3.18.24C2.83.46 2.62.86 2.62 1.4v21.2c0 .54.21.95.56 1.16L14.9 12 3.18.24z" fill="#34A853"/>
+    <path d="M3.18.24L14.9 12l2.7-2.7-12.43-7.13c-.35-.2-.69-.21-.99.07z" fill="#4285F4"/>
+  </svg>
+);
+
 const CTA = () => {
   const [visible, setVisible] = useState(false);
   const ref = useRef(null);
@@ -21,131 +36,116 @@ const CTA = () => {
   }, []);
 
   return (
-    <section className="relative bg-[#f9f9f8] py-24 px-6 overflow-hidden">
+    <section className="relative bg-[#f5f5f3] py-24 px-6 overflow-hidden">
 
       {/* Top divider line */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-16 bg-gradient-to-b from-transparent to-zinc-200" />
-
-      {/* Background glow */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{ background: "radial-gradient(ellipse 80% 60% at 50% 100%, rgba(37,99,235,0.07) 0%, transparent 70%)" }}
-      />
-
-      {/* Grid texture */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-[0.025]"
-        style={{
-          backgroundImage: "linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-b from-transparent to-zinc-300" />
 
       <div
         ref={ref}
-        className={`relative z-10 max-w-4xl mx-auto transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+        className={`relative z-10 max-w-3xl mx-auto transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
       >
         {/* Main card */}
-        <div className="relative bg-zinc-900 rounded-3xl overflow-hidden px-8 py-14 sm:px-16 sm:py-16 text-center">
+        <div className="relative bg-[#0c1014] rounded-[28px] overflow-hidden px-8 py-16 sm:px-14 sm:py-20 text-center">
 
-          {/* Inner glow */}
+          {/* Grid texture */}
           <div
             className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(59,130,246,0.18) 0%, transparent 60%)" }}
-          />
-
-          {/* Subtle grid inside card */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.04]"
             style={{
-              backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
+              backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
+              backgroundSize: "44px 44px",
             }}
           />
 
-          {/* Corner accents */}
-          <div className="absolute top-0 left-0 w-32 h-32 opacity-20"
-            style={{ background: "radial-gradient(circle at top left, rgba(59,130,246,0.6), transparent 70%)" }} />
-          <div className="absolute bottom-0 right-0 w-48 h-48 opacity-15"
-            style={{ background: "radial-gradient(circle at bottom right, rgba(59,130,246,0.5), transparent 70%)" }} />
+          {/* Subtle top glow */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 60% 40% at 50% -5%, rgba(255,255,255,0.07) 0%, transparent 65%)" }}
+          />
+
+          {/* Corner rings */}
+          <div className="pointer-events-none absolute -top-36 -right-24 w-[420px] h-[420px] rounded-full border border-white/[0.06]" />
+          <div className="pointer-events-none absolute -bottom-28 -left-16 w-[320px] h-[320px] rounded-full border border-white/[0.06]" />
 
           <div className="relative z-10">
 
             {/* Eyebrow pill */}
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 mb-7">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-              <span className="text-[11px] font-semibold text-white/70 tracking-widest uppercase">Now Live — Launch Offer</span>
+            <div className="inline-flex items-center gap-2 border border-white/[0.12] rounded-full px-4 py-1.5 mb-7">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse" />
+              <span className="text-[10px] font-semibold text-white/45 tracking-[0.14em] uppercase">Now Live — Launch Offer</span>
             </div>
 
             {/* Headline */}
             <h2
-              className="text-[clamp(30px,5vw,52px)] font-semibold text-white leading-[1.1] mb-4 tracking-tight"
-              style={{ letterSpacing: "-1.5px", fontFamily: "Georgia, 'Times New Roman', serif" }}
+              className="text-[clamp(32px,5.5vw,54px)] font-normal text-white leading-[1.08] mb-4"
+              style={{ letterSpacing: "-0.03em", fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Your business, finally<br />
-              <em className="text-blue-400 not-italic">under control.</em>
+              <em className="italic text-white/90">under control.</em>
             </h2>
 
+            {/* Rule */}
+            <div className="w-9 h-[1.5px] bg-white/20 mx-auto mb-5" />
+
             {/* Sub */}
-            <p className="text-[15px] text-white/50 leading-relaxed max-w-lg mx-auto mb-10">
-              Join hundreds of shop owners already using BizEzy to track payments, manage inventory, and grow — all from one app.
+            <p className="text-[14.5px] text-white/40 leading-[1.75] max-w-[480px] mx-auto mb-9 font-light">
+              Join BizEzy to track payments, manage inventory, and grow — all from one app.
             </p>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-10">
+            {/* Trust perks */}
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-9">
               {[
-                { icon: "M20 6 9 17 4 12", text: "2 months free on sign-up" },
-                { icon: "M20 6 9 17 4 12", text: "No credit card required" },
-                { icon: "M20 6 9 17 4 12", text: "All features included" },
-              ].map((b, i) => (
-                <div key={i} className="flex items-center gap-2 text-[13px] text-white/50">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {b.text}
+                "2 months free on sign-up",
+                "No credit card required",
+                "All features included",
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-2 text-[12.5px] text-white/45">
+                  <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  {text}
                 </div>
               ))}
             </div>
 
             {/* CTA buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-              <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-[14px] font-semibold px-7 py-3.5 rounded-xl transition-all duration-200 active:scale-95 shadow-lg shadow-blue-900/40">
-                <Icon d="M12 3v12M7 14l5 5 5-5M3 19h18" size={15} stroke="white" strokeWidth={2.2} />
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
+              <button className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-[#0c1014] text-[13.5px] font-semibold px-7 py-3.5 rounded-[14px] transition-all duration-200 active:scale-95">
+                <Icon d="M12 3v12M7 14l5 5 5-5M3 19h18" size={14} stroke="#0c1014" strokeWidth={2.2} />
                 Get Started Free
               </button>
-              <button className="flex items-center gap-2 bg-white/8 hover:bg-white/12 border border-white/15 text-white/80 text-[14px] font-medium px-7 py-3.5 rounded-xl transition-all duration-200">
+              <button className="flex items-center gap-2 border border-white/[0.14] hover:border-white/30 text-white/65 hover:text-white text-[13.5px] font-medium px-7 py-3.5 rounded-[14px] transition-all duration-200">
                 Explore Features
-                <Icon d="M5 12h14M13 6l6 6-6 6" size={14} stroke="currentColor" strokeWidth={2} />
+                <Icon d="M5 12h14M13 6l6 6-6 6" size={13} stroke="currentColor" strokeWidth={2} />
               </button>
+            </div>
+
+            {/* Available on divider */}
+            <div className="flex items-center gap-4 max-w-[300px] mx-auto mb-7 text-white/20 text-[11px] tracking-[0.08em] uppercase">
+              <div className="flex-1 h-px bg-white/10" />
+              <span>Available on</span>
+              <div className="flex-1 h-px bg-white/10" />
             </div>
 
             {/* Store badges */}
             <div className="flex items-center justify-center gap-3 flex-wrap">
               {/* App Store */}
-              <div className="flex items-center gap-2.5 bg-white/8 border border-white/12 rounded-xl px-4 py-2.5 hover:bg-white/12 transition-colors cursor-pointer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect width="24" height="24" rx="5" fill="#1a1a1a" />
-                  <path d="M12 5L8.5 12H15.5L12 5Z" fill="white" />
-                  <path d="M7 13L5.5 16H18.5L17 13H7Z" fill="white" opacity="0.6" />
-                </svg>
-                <div className="text-left leading-tight">
-                  <div className="text-[9px] text-white/40 uppercase tracking-wide">Download on the</div>
-                  <div className="text-[12.5px] font-semibold text-white tracking-tight">App Store</div>
+              <div className="flex items-center gap-3 bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.09] hover:border-white/[0.22] rounded-[14px] px-5 py-3 transition-all cursor-pointer min-w-[160px]">
+                <AppleIcon />
+                <div className="text-left leading-none">
+                  <div className="text-[9px] text-white uppercase tracking-[0.06em] mb-1">Download on the</div>
+                  <div className="text-[14px] font-semibold text-white tracking-tight">App Store</div>
                 </div>
               </div>
 
               {/* Play Store */}
-              <div className="flex items-center gap-2.5 bg-white/8 border border-white/12 rounded-xl px-4 py-2.5 hover:bg-white/12 transition-colors cursor-pointer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect width="24" height="24" rx="5" fill="#1a1a1a" />
-                  <path d="M6 4.5L13.5 12L6 19.5V4.5Z" fill="#34d399" />
-                  <path d="M6 4.5L13.5 12L10 13.5L6 4.5Z" fill="#60a5fa" />
-                  <path d="M6 19.5L13.5 12L10 10.5L6 19.5Z" fill="#f87171" />
-                  <path d="M13.5 12L18 9.5V14.5L13.5 12Z" fill="#fbbf24" />
-                </svg>
-                <div className="text-left leading-tight">
-                  <div className="text-[9px] text-white/40 uppercase tracking-wide">Get it on</div>
-                  <div className="text-[12.5px] font-semibold text-white tracking-tight">Google Play</div>
+              <div className="flex items-center gap-3 bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.09] hover:border-white/[0.22] rounded-[14px] px-5 py-3 transition-all cursor-pointer min-w-[160px]">
+                <PlayStoreIcon />
+                <div className="text-left leading-none">
+                  <div className="text-[9px] text-white uppercase tracking-[0.06em] mb-1">Get it on</div>
+                  <div className="text-[14px] font-semibold text-white tracking-tight">Google Play</div>
                 </div>
               </div>
             </div>
@@ -153,48 +153,16 @@ const CTA = () => {
           </div>
         </div>
 
-        {/* Bottom social proof strip */}
-        <div
-          className={`mt-6 flex flex-wrap justify-center items-center gap-x-8 gap-y-3 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
-        >
-          {/* Avatars */}
-          {/* <div className="flex items-center gap-2.5">
-            <div className="flex -space-x-2">
-              {["R", "M", "A", "S", "P"].map((l, i) => (
-                <div
-                  key={i}
-                  className="w-7 h-7 rounded-full border-2 border-[#f9f9f8] flex items-center justify-center text-[9px] font-bold text-white"
-                  style={{ background: ["#3b82f6","#8b5cf6","#10b981","#f59e0b","#e11d48"][i] }}
-                >
-                  {l}
-                </div>
-              ))}
+        {/* Bottom strip */}
+        <div className={`mt-6 flex flex-wrap justify-center items-center gap-x-8 gap-y-2 pt-5 border-t border-zinc-200 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
+          {["Free for 2 months", "No card needed", ].map((text, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[12px] text-zinc-500">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {text}
             </div>
-            <span className="text-[12.5px] text-zinc-500 font-medium">500+ businesses joined</span>
-          </div> */}
-
-          <span className="w-px h-4 bg-zinc-300 hidden sm:block" />
-
-          {/* Stars */}
-          <div className="flex items-center gap-1.5">
-            <div className="flex gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              ))}
-            </div>
-            <span className="text-[12.5px] text-zinc-500 font-medium">4.9 / 5 rating</span>
-          </div>
-
-          <span className="w-px h-4 bg-zinc-300 hidden sm:block" />
-
-          <div className="flex items-center gap-1.5 text-[12.5px] text-zinc-500 font-medium">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            Free for 2 months · No card needed
-          </div>
+          ))}
         </div>
 
       </div>
