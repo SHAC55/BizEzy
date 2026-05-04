@@ -59,13 +59,6 @@ const stackScreenOptions = {
   gestureEnabled: true,
 };
 
-const sheetScreenOptions = {
-  headerShown: false,
-  animation: "none" as const,
-  presentation: "transparentModal" as const,
-  contentStyle: { backgroundColor: "transparent" },
-};
-
 type ScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
   RootStackParamList,
   T
@@ -102,7 +95,7 @@ const AddInventoryScreen = ({ navigation, route }: ScreenProps<"AddInventory">) 
     }}
     onNavigate={() => {}}
     onRequestClose={() => navigation.goBack()}
-    presentation="sheet"
+    presentation="screen"
   />
 );
 
@@ -144,7 +137,7 @@ const AddCustomerScreen = ({ navigation, route }: ScreenProps<"AddCustomer">) =>
     }}
     onNavigate={() => {}}
     onRequestClose={() => navigation.goBack()}
-    presentation="sheet"
+    presentation="screen"
   />
 );
 
@@ -183,11 +176,11 @@ const AppNavigator = () => (
         component={MainTabsScreen}
         options={{ animation: "none" }}
       />
-      <Stack.Screen name="AddInventory" component={AddInventoryScreen} options={sheetScreenOptions} />
+      <Stack.Screen name="AddInventory" component={AddInventoryScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="AddSale" component={AddSaleScreen} />
       <Stack.Screen name="SaleDetail" component={SaleDetailScreen} />
-      <Stack.Screen name="AddCustomer" component={AddCustomerScreen} options={sheetScreenOptions} />
+      <Stack.Screen name="AddCustomer" component={AddCustomerScreen} />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <Stack.Screen name="UserDetail" component={UserDetailScreen} />
       <Stack.Screen name="Reminders" component={RemindersScreen} />

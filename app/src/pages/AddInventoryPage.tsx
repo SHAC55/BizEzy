@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   KeyboardAvoidingView,
@@ -47,39 +47,67 @@ type FormState = {
 type FormErrors = Partial<Record<keyof FormState, string>>;
 type FormTouched = Partial<Record<keyof FormState, boolean>>;
 
-const initialForm: FormState = { name: "", category: "", sku: "", costPrice: "", price: "", quantity: "", minimumQuantity: "" };
+const initialForm: FormState = {
+  name: "",
+  category: "",
+  sku: "",
+  costPrice: "",
+  price: "",
+  quantity: "",
+  minimumQuantity: "",
+};
 
 const generateSku = (name: string) => {
   if (!name.trim()) return "";
-  const prefix = name.trim().split(/\s+/).map((p) => p[0]).join("").toUpperCase().slice(0, 3);
+  const prefix = name
+    .trim()
+    .split(/\s+/)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 3);
   return `${prefix}-${Math.floor(100 + Math.random() * 900)}`;
 };
 
-const validateField = (name: keyof FormState, value: string): string | undefined => {
+const validateField = (
+  name: keyof FormState,
+  value: string
+): string | undefined => {
   switch (name) {
-    case "name": return value.trim() ? undefined : "Product name is required";
-    case "category": return value.trim() ? undefined : "Category is required";
+    case "name":
+      return value.trim() ? undefined : "Product name is required";
+    case "category":
+      return value.trim() ? undefined : "Category is required";
     case "costPrice": {
       if (!value.trim()) return "Cost price is required";
       const n = Number(value);
-      return Number.isNaN(n) || n < 0 ? "Enter a valid positive number" : undefined;
+      return Number.isNaN(n) || n < 0
+        ? "Enter a valid positive number"
+        : undefined;
     }
     case "price": {
       if (!value.trim()) return "Selling price is required";
       const n = Number(value);
-      return Number.isNaN(n) || n < 0 ? "Enter a valid positive number" : undefined;
+      return Number.isNaN(n) || n < 0
+        ? "Enter a valid positive number"
+        : undefined;
     }
     case "quantity": {
       if (!value.trim()) return "Stock quantity is required";
       const n = Number(value);
-      return Number.isNaN(n) || !Number.isInteger(n) || n < 0 ? "Enter a valid non-negative integer" : undefined;
+      return Number.isNaN(n) || !Number.isInteger(n) || n < 0
+        ? "Enter a valid non-negative integer"
+        : undefined;
     }
     case "minimumQuantity": {
       if (!value.trim()) return "Low alert quantity is required";
       const n = Number(value);
-      return Number.isNaN(n) || !Number.isInteger(n) || n < 0 ? "Enter a valid non-negative integer" : undefined;
+      return Number.isNaN(n) || !Number.isInteger(n) || n < 0
+        ? "Enter a valid non-negative integer"
+        : undefined;
     }
-    default: return undefined;
+    default:
+      return undefined;
   }
 };
 
@@ -100,105 +128,182 @@ export const AddInventoryPage = ({
   const [touched, setTouched] = useState<FormTouched>({});
   const [isBootstrapping, setIsBootstrapping] = useState(Boolean(productId));
 
+  // Keep a ref to isLoading so the BackHandler effect never needs to re-subscribe
+  const isLoadingRef = useRef(isLoading);
   useEffect(() => {
-    const token = session?.tokens.accessToken;
-    if (!productId || !token) { setIsBootstrapping(false); return; }
-    fetchProduct(token, productId)
-      .then((product) => {
-        setForm({
-          name: product.name, category: product.category, sku: product.sku ?? "",
-          costPrice: String(product.costPrice), price: String(product.price),
-          quantity: String(product.quantity), minimumQuantity: String(product.minimumQuantity),
-        });
-      })
-      .catch((err) => setErrors({ name: err instanceof Error ? err.message : "Failed to load" }))
-      .finally(() => setIsBootstrapping(false));
-  }, [productId, session?.tokens.accessToken]);
-
-  const handleChange = (name: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (touched[name]) setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
-  };
-
-  useEffect(() => {
-    if (!isLoading) return;
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
-    return () => sub.remove();
+    isLoadingRef.current = isLoading;
   }, [isLoading]);
 
-  const handleBlur = (name: keyof FormState, value: string) => {
+  // Subscribe to hardware back once; read current loading state via ref
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      return isLoadingRef.current;
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Keep a ref to form so callbacks can read current values without stale closures
+  const formRef = useRef(form);
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  // Bootstrap product data for edit mode
+  useEffect(() => {
+    const token = session?.tokens.accessToken;
+    if (!productId || !token) {
+      setIsBootstrapping(false);
+      return;
+    }
+    let cancelled = false;
+    fetchProduct(token, productId)
+      .then((product) => {
+        if (cancelled) return;
+        setForm({
+          name: product.name,
+          category: product.category,
+          sku: product.sku ?? "",
+          costPrice: String(product.costPrice),
+          price: String(product.price),
+          quantity: String(product.quantity),
+          minimumQuantity: String(product.minimumQuantity),
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setErrors({
+          name: err instanceof Error ? err.message : "Failed to load",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setIsBootstrapping(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, session?.tokens.accessToken]);
+
+  // Stable onChange — validates only if the field has already been touched
+  const handleChange = useCallback((name: keyof FormState, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => {
+      if (!touched[name]) return prev;
+      const err = validateField(name, value);
+      if (prev[name] === err) return prev; // avoid unnecessary re-render
+      return { ...prev, [name]: err };
+    });
+  }, [touched]);
+
+  // Stable onBlur — reads latest value from formRef, not stale closure
+  const handleBlur = useCallback((name: keyof FormState) => {
+    const value = formRef.current[name];
     setTouched((prev) => ({ ...prev, [name]: true }));
     setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
-  };
+  }, []);
 
-  const handleSubmit = async () => {
-    const required: (keyof FormState)[] = ["name", "category", "costPrice", "price", "quantity", "minimumQuantity"];
+  const handleSubmit = useCallback(async () => {
+    const required: (keyof FormState)[] = [
+      "name",
+      "category",
+      "costPrice",
+      "price",
+      "quantity",
+      "minimumQuantity",
+    ];
+    const currentForm = formRef.current;
     const newErrors: FormErrors = {};
     const newTouched: FormTouched = {};
+
     for (const field of required) {
       newTouched[field] = true;
-      const err = validateField(field, form[field]);
+      const err = validateField(field, currentForm[field]);
       if (err) newErrors[field] = err;
     }
+
+    // Single batched state update per group
     setTouched((prev) => ({ ...prev, ...newTouched }));
     setErrors((prev) => ({ ...prev, ...newErrors }));
+
     if (Object.keys(newErrors).length > 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
-    const name = form.name.trim();
+    const name = currentForm.name.trim();
     const payload = {
       name,
-      category: form.category.trim(),
-      sku: form.sku.trim() || generateSku(name),
-      costPrice: Number(form.costPrice),
-      price: Number(form.price),
-      quantity: Number(form.quantity),
-      minimumQuantity: Number(form.minimumQuantity),
+      category: currentForm.category.trim(),
+      sku: currentForm.sku.trim() || generateSku(name),
+      costPrice: Number(currentForm.costPrice),
+      price: Number(currentForm.price),
+      quantity: Number(currentForm.quantity),
+      minimumQuantity: Number(currentForm.minimumQuantity),
     };
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     try {
       if (productId) {
         const token = session?.tokens.accessToken;
-        if (!token) { setErrors({ name: "Session expired" }); return; }
+        if (!token) {
+          setErrors({ name: "Session expired" });
+          return;
+        }
         await updateProduct(token, productId, payload);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: queryKeys.products.all }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(productId) }),
-          queryClient.invalidateQueries({ queryKey: queryKeys.products.movements(productId) }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.products.detail(productId),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.products.movements(productId),
+          }),
           queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
         ]);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Toast.show({ type: "success", text1: "Product Updated", text2: `${name} has been saved.` });
+        Toast.show({
+          type: "success",
+          text1: "Product Updated",
+          text2: `${name} has been saved.`,
+        });
         onCreated(productId);
         return;
       }
+
       const product = await createProduct(payload);
       setForm(initialForm);
+      setErrors({});
+      setTouched({});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Toast.show({ type: "success", text1: "Product Added! 🎉", text2: `${name} is now in your inventory.` });
+      Toast.show({
+        type: "success",
+        text1: "Product Added!",
+        text2: `${name} is now in your inventory.`,
+      });
       onCreated(product.id);
     } catch {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Toast.show({ type: "error", text1: "Save Failed", text2: "Could not save. Try again." });
+      Toast.show({
+        type: "error",
+        text1: "Save Failed",
+        text2: "Could not save. Try again.",
+      });
     }
-  };
+  }, [productId, session?.tokens.accessToken, createProduct, queryClient, onCreated]);
 
   const closeHandler = onRequestClose ?? onBackToInventory;
   const isEdit = Boolean(productId);
 
-  // Profit preview
+  // Derived profit preview — no extra state
   const costVal = Number(form.costPrice) || 0;
   const priceVal = Number(form.price) || 0;
-  const qtyVal = Number(form.quantity) || 0;
-  const margin = priceVal > 0 ? Math.round(((priceVal - costVal) / priceVal) * 100) : 0;
+  const margin =
+    priceVal > 0 ? Math.round(((priceVal - costVal) / priceVal) * 100) : 0;
 
   const content = (
     <>
-      {/* ─── Header ─── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(0)}>
+      {/* Header */}
+      <Animated.View entering={FadeInDown.duration(300).delay(0)}>
         <View className="mb-5 flex-row items-center gap-4">
           {presentation === "screen" && (
             <Pressable
@@ -221,7 +326,11 @@ export const AddInventoryPage = ({
             className="h-12 w-12 rounded-2xl items-center justify-center"
             style={{ backgroundColor: isEdit ? "#FEF3C7" : "#EEF2FF" }}
           >
-            <MaterialIcons name={isEdit ? "edit" : "inventory-2"} size={22} color={isEdit ? "#F59E0B" : "#6366F1"} />
+            <MaterialIcons
+              name={isEdit ? "edit" : "inventory-2"}
+              size={22}
+              color={isEdit ? "#F59E0B" : "#6366F1"}
+            />
           </View>
         </View>
       </Animated.View>
@@ -236,115 +345,226 @@ export const AddInventoryPage = ({
       {isBootstrapping ? (
         <View className="items-center py-20">
           <ActivityIndicator size="large" color="#6366F1" />
-          <Text className="text-slate-400 text-[13px] mt-3">Loading product...</Text>
+          <Text className="text-slate-400 text-[13px] mt-3">
+            Loading product...
+          </Text>
         </View>
       ) : (
         <>
-          {/* ─── Product Details Section ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(80)}>
-            <SectionLabel icon="info" color="#6366F1" bg="#EEF2FF" label="Product Details" />
-            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
-              <Field label="Product Name" icon="inventory-2" placeholder="e.g. Wireless Mouse" value={form.name} error={errors.name}
-                onChangeText={(v) => handleChange("name", v)} onBlur={() => handleBlur("name", form.name)} />
-              <Field label="Category" icon="category" placeholder="e.g. Electronics" value={form.category} error={errors.category}
-                onChangeText={(v) => handleChange("category", v)} onBlur={() => handleBlur("category", form.category)} />
+          {/* Product Details */}
+          <Animated.View entering={FadeInDown.duration(300).delay(60)}>
+            <SectionLabel
+              icon="info"
+              color="#6366F1"
+              bg="#EEF2FF"
+              label="Product Details"
+            />
+            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4">
+              <Field
+                label="Product Name"
+                icon="inventory-2"
+                placeholder="e.g. Wireless Mouse"
+                value={form.name}
+                error={errors.name}
+                onChangeText={(v) => handleChange("name", v)}
+                onBlur={() => handleBlur("name")}
+              />
+              <Field
+                label="Category"
+                icon="category"
+                placeholder="e.g. Electronics"
+                value={form.category}
+                error={errors.category}
+                onChangeText={(v) => handleChange("category", v)}
+                onBlur={() => handleBlur("category")}
+              />
               <View className="flex-row items-end gap-3">
                 <View className="flex-1">
-                  <Field label="SKU" icon="qr-code" placeholder="Auto-generated" value={form.sku}
-                    onChangeText={(v) => handleChange("sku", v)} onBlur={() => handleBlur("sku", form.sku)} />
+                  <Field
+                    label="SKU"
+                    icon="qr-code"
+                    placeholder="Auto-generated"
+                    value={form.sku}
+                    onChangeText={(v) => handleChange("sku", v)}
+                    onBlur={() => handleBlur("sku")}
+                  />
                 </View>
                 <Pressable
-                  onPress={() => setForm((c) => ({ ...c, sku: generateSku(c.name) }))}
-                  android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+                  onPress={() =>
+                    setForm((c) => ({ ...c, sku: generateSku(c.name) }))
+                  }
+                  android_ripple={{
+                    color: "rgba(0,0,0,0.06)",
+                    borderless: false,
+                  }}
                   className="h-[52px] px-4 rounded-xl bg-slate-900 items-center justify-center flex-row gap-2 mb-4"
                 >
                   <MaterialIcons name="auto-fix-high" size={16} color="#fff" />
-                  <Text className="text-white text-[12px] font-bold">Generate</Text>
+                  <Text className="text-white text-[12px] font-bold">
+                    Generate
+                  </Text>
                 </Pressable>
               </View>
             </View>
           </Animated.View>
 
-          {/* ─── Pricing Section ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(160)}>
-            <SectionLabel icon="payments" color="#F59E0B" bg="#FEF3C7" label="Pricing" />
-            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
+          {/* Pricing */}
+          <Animated.View entering={FadeInDown.duration(300).delay(120)}>
+            <SectionLabel
+              icon="payments"
+              color="#F59E0B"
+              bg="#FEF3C7"
+              label="Pricing"
+            />
+            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4">
               <View className="flex-row gap-3">
                 <View className="flex-1">
-                  <Field label="Cost Price" icon="currency-rupee" keyboardType="decimal-pad" placeholder="0" value={form.costPrice} error={errors.costPrice}
-                    onChangeText={(v) => handleChange("costPrice", v)} onBlur={() => handleBlur("costPrice", form.costPrice)} />
+                  <Field
+                    label="Cost Price"
+                    icon="currency-rupee"
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    value={form.costPrice}
+                    error={errors.costPrice}
+                    onChangeText={(v) => handleChange("costPrice", v)}
+                    onBlur={() => handleBlur("costPrice")}
+                  />
                 </View>
                 <View className="flex-1">
-                  <Field label="Selling Price" icon="sell" keyboardType="decimal-pad" placeholder="0" value={form.price} error={errors.price}
-                    onChangeText={(v) => handleChange("price", v)} onBlur={() => handleBlur("price", form.price)} />
+                  <Field
+                    label="Selling Price"
+                    icon="sell"
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    value={form.price}
+                    error={errors.price}
+                    onChangeText={(v) => handleChange("price", v)}
+                    onBlur={() => handleBlur("price")}
+                  />
                 </View>
               </View>
-              {/* Margin indicator */}
               {priceVal > 0 && (
-                <View className={`flex-row items-center gap-2 px-3 py-2.5 rounded-xl ${margin >= 0 ? "bg-emerald-50" : "bg-red-50"}`}>
-                  <MaterialIcons name={margin >= 0 ? "trending-up" : "trending-down"} size={16} color={margin >= 0 ? "#10B981" : "#EF4444"} />
-                  <Text className={`text-[12px] font-bold ${margin >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                    {margin}% margin · ₹{(priceVal - costVal).toFixed(0)} profit/unit
+                <View
+                  className={`flex-row items-center gap-2 px-3 py-2.5 rounded-xl ${
+                    margin >= 0 ? "bg-emerald-50" : "bg-red-50"
+                  }`}
+                >
+                  <MaterialIcons
+                    name={margin >= 0 ? "trending-up" : "trending-down"}
+                    size={16}
+                    color={margin >= 0 ? "#10B981" : "#EF4444"}
+                  />
+                  <Text
+                    className={`text-[12px] font-bold ${
+                      margin >= 0 ? "text-emerald-700" : "text-red-600"
+                    }`}
+                  >
+                    {margin}% margin · ₹{(priceVal - costVal).toFixed(0)}{" "}
+                    profit/unit
                   </Text>
                 </View>
               )}
             </View>
           </Animated.View>
 
-          {/* ─── Stock Section ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(240)}>
-            <SectionLabel icon="inventory" color="#10B981" bg="#ECFDF5" label="Stock Levels" />
-            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
+          {/* Stock */}
+          <Animated.View entering={FadeInDown.duration(300).delay(180)}>
+            <SectionLabel
+              icon="inventory"
+              color="#10B981"
+              bg="#ECFDF5"
+              label="Stock Levels"
+            />
+            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4">
               <View className="flex-row gap-3">
                 <View className="flex-1">
-                  <Field label="Current Stock" icon="inventory" keyboardType="number-pad" placeholder="0" value={form.quantity} error={errors.quantity}
-                    onChangeText={(v) => handleChange("quantity", v)} onBlur={() => handleBlur("quantity", form.quantity)} />
+                  <Field
+                    label="Current Stock"
+                    icon="inventory"
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    value={form.quantity}
+                    error={errors.quantity}
+                    onChangeText={(v) => handleChange("quantity", v)}
+                    onBlur={() => handleBlur("quantity")}
+                  />
                 </View>
                 <View className="flex-1">
-                  <Field label="Low Alert At" icon="warning" keyboardType="number-pad" placeholder="0" value={form.minimumQuantity} error={errors.minimumQuantity}
-                    onChangeText={(v) => handleChange("minimumQuantity", v)} onBlur={() => handleBlur("minimumQuantity", form.minimumQuantity)} />
+                  <Field
+                    label="Low Alert At"
+                    icon="warning"
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    value={form.minimumQuantity}
+                    error={errors.minimumQuantity}
+                    onChangeText={(v) => handleChange("minimumQuantity", v)}
+                    onBlur={() => handleBlur("minimumQuantity")}
+                  />
                 </View>
               </View>
             </View>
           </Animated.View>
 
-          {/* ─── Live Preview ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(320)}>
+          {/* Live Preview */}
+          <Animated.View entering={FadeInDown.duration(300).delay(240)}>
             <View
               className="rounded-2xl overflow-hidden mb-5"
-              style={{ backgroundColor: "#0F172A", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 8 }}
+              style={{ backgroundColor: "#0F172A" }}
             >
               <View className="px-5 pt-5 pb-4">
-                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-[3px] mb-3">Live Preview</Text>
-                <Text className="text-[22px] font-bold text-white tracking-tight" numberOfLines={1}>
+                <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-[3px] mb-3">
+                  Live Preview
+                </Text>
+                <Text
+                  className="text-[22px] font-bold text-white tracking-tight"
+                  numberOfLines={1}
+                >
                   {form.name || "Product Name"}
                 </Text>
-                <Text className="text-[13px] text-slate-400 mt-1">{form.category || "Category"}</Text>
+                <Text className="text-[13px] text-slate-400 mt-1">
+                  {form.category || "Category"}
+                </Text>
               </View>
               <View className="flex-row border-t border-white/5">
                 <PreviewPill label="Price" value={`₹${form.price || "0"}`} />
-                <PreviewPill label="Stock" value={`${form.quantity || "0"} pcs`} />
+                <PreviewPill
+                  label="Stock"
+                  value={`${form.quantity || "0"} pcs`}
+                />
                 <PreviewPill label="Margin" value={`${margin}%`} />
               </View>
             </View>
           </Animated.View>
 
-          {/* ─── Submit Button ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+          {/* Submit */}
+          <Animated.View entering={FadeInDown.duration(300).delay(300)}>
             <Pressable
               onPress={handleSubmit}
               disabled={isLoading}
-              android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
-              className={`flex-row items-center justify-center gap-2.5 rounded-2xl py-4.5 ${isLoading ? "bg-slate-300" : "bg-slate-900"}`}
-              style={{ paddingVertical: 18, shadowColor: "#0F172A", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6 }}
+              android_ripple={{
+                color: "rgba(255,255,255,0.1)",
+                borderless: false,
+              }}
+              className={`flex-row items-center justify-center gap-2.5 rounded-2xl ${
+                isLoading ? "bg-slate-300" : "bg-slate-900"
+              }`}
+              style={{ paddingVertical: 18 }}
             >
               {isLoading ? (
                 <ActivityIndicator size={18} color="#fff" />
               ) : (
-                <MaterialIcons name={isEdit ? "save" : "add-circle"} size={20} color="#fff" />
+                <MaterialIcons
+                  name={isEdit ? "save" : "add-circle"}
+                  size={20}
+                  color="#fff"
+                />
               )}
               <Text className="text-[16px] font-bold text-white">
-                {isLoading ? "Saving..." : isEdit ? "Update Product" : "Add Product"}
+                {isLoading
+                  ? "Saving..."
+                  : isEdit
+                  ? "Update Product"
+                  : "Add Product"}
               </Text>
             </Pressable>
           </Animated.View>
@@ -353,21 +573,25 @@ export const AddInventoryPage = ({
     </>
   );
 
-  const formBody = presentation === "sheet" ? (
-    <View className="px-5 pb-16 pt-2">{content}</View>
-  ) : (
-    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView
-        automaticallyAdjustKeyboardInsets
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
-        keyboardShouldPersistTaps="handled"
-        contentContainerClassName="px-4 pt-3 pb-36"
+  const formBody =
+    presentation === "sheet" ? (
+      <View className="px-5 pb-16 pt-2">{content}</View>
+    ) : (
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {content}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+        <ScrollView
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName="px-4 pt-3 pb-36"
+        >
+          {content}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
 
   if (presentation === "sheet") {
     return (
@@ -376,33 +600,67 @@ export const AddInventoryPage = ({
         subtitle="Update stock data without leaving the current screen."
         onClose={closeHandler}
       >
-        <SubmitOverlay visible={isLoading} message={isEdit ? "Updating..." : "Adding product..."} />
+        <SubmitOverlay
+          visible={isLoading}
+          message={isEdit ? "Updating..." : "Adding product..."}
+        />
         {formBody}
       </FormBottomSheet>
     );
   }
 
   return (
-    <AppLayout currentRoute="addInventory" onNavigate={onNavigate} title={isEdit ? "Edit Inventory" : "Add Inventory"} subtitle="Manage products professionally." eyebrow={isEdit ? "Edit" : "Create"}>
-      <SubmitOverlay visible={isLoading} message={isEdit ? "Updating..." : "Adding product..."} />
+    <AppLayout
+      currentRoute="addInventory"
+      onNavigate={onNavigate}
+      title={isEdit ? "Edit Inventory" : "Add Inventory"}
+      subtitle="Manage products professionally."
+      eyebrow={isEdit ? "Edit" : "Create"}
+    >
+      <SubmitOverlay
+        visible={isLoading}
+        message={isEdit ? "Updating..." : "Adding product..."}
+      />
       {formBody}
     </AppLayout>
   );
 };
 
-// ── Section Label ────────────────────────────────────────────────
-const SectionLabel = ({ icon, color, bg, label }: { icon: ComponentProps<typeof MaterialIcons>["name"]; color: string; bg: string; label: string }) => (
+// ── Section Label ─────────────────────────────────────────────────
+const SectionLabel = ({
+  icon,
+  color,
+  bg,
+  label,
+}: {
+  icon: ComponentProps<typeof MaterialIcons>["name"];
+  color: string;
+  bg: string;
+  label: string;
+}) => (
   <View className="flex-row items-center gap-2 mb-3 ml-1">
-    <View className="h-6 w-6 rounded-md items-center justify-center" style={{ backgroundColor: bg }}>
+    <View
+      className="h-6 w-6 rounded-md items-center justify-center"
+      style={{ backgroundColor: bg }}
+    >
       <MaterialIcons name={icon} size={13} color={color} />
     </View>
-    <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</Text>
+    <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+      {label}
+    </Text>
   </View>
 );
 
-// ── Field ────────────────────────────────────────────────────────
+// ── Field ─────────────────────────────────────────────────────────
 const Field = ({
-  label, icon, keyboardType = "default", placeholder, value, error, onChangeText, onBlur,
+  label,
+  icon,
+  keyboardType = "default",
+  placeholder,
+  value,
+  error,
+  onChangeText,
+  onBlur,
 }: {
   label: string;
   icon: ComponentProps<typeof MaterialIcons>["name"];
@@ -414,9 +672,19 @@ const Field = ({
   onBlur?: () => void;
 }) => (
   <View className="mb-4">
-    <Text className="mb-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider ml-1">{label}</Text>
-    <View className={`h-[52px] flex-row items-center rounded-xl border px-3.5 ${error ? "border-red-300 bg-red-50/50" : "border-slate-200 bg-slate-50"}`}>
-      <MaterialIcons name={icon} size={17} color={error ? "#EF4444" : "#94A3B8"} />
+    <Text className="mb-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider ml-1">
+      {label}
+    </Text>
+    <View
+      className={`h-[52px] flex-row items-center rounded-xl border px-3.5 ${
+        error ? "border-red-300 bg-red-50/50" : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <MaterialIcons
+        name={icon}
+        size={17}
+        color={error ? "#EF4444" : "#94A3B8"}
+      />
       <TextInput
         className="flex-1 pl-2.5 text-[15px] text-slate-900"
         placeholder={placeholder}
@@ -425,6 +693,10 @@ const Field = ({
         value={value}
         onChangeText={onChangeText}
         onBlur={onBlur}
+        // Prevents Android spell-checker from intercepting keystrokes (key freeze fix)
+        autoCorrect={false}
+        autoCapitalize="none"
+        spellCheck={false}
       />
     </View>
     {error && (
@@ -436,10 +708,14 @@ const Field = ({
   </View>
 );
 
-// ── Preview Pill ─────────────────────────────────────────────────
+// ── Preview Pill ──────────────────────────────────────────────────
 const PreviewPill = ({ label, value }: { label: string; value: string }) => (
   <View className="flex-1 py-3 px-3 items-center border-r border-white/5">
-    <Text className="text-[13px] font-bold text-white" numberOfLines={1}>{value}</Text>
-    <Text className="text-[8px] font-semibold text-slate-500 uppercase tracking-wider mt-1">{label}</Text>
+    <Text className="text-[13px] font-bold text-white" numberOfLines={1}>
+      {value}
+    </Text>
+    <Text className="text-[8px] font-semibold text-slate-500 uppercase tracking-wider mt-1">
+      {label}
+    </Text>
   </View>
 );
