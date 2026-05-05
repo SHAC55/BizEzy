@@ -15,7 +15,7 @@ const TESTIMONIALS = [
     accentText: "#1a5fcb",
   },
   {
-    name: "Aseem Sharma",
+    name: "Aseem Shaikh",
     role: "Water Supplier",
     location: "Thane, Maharashtra",
     av: "AS",
@@ -58,7 +58,15 @@ const TESTIMONIALS = [
 const StarRow = () => (
   <div style={{ display: "flex", gap: 3 }}>
     {[...Array(5)].map((_, i) => (
-      <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill="#0f172a" stroke="#0f172a" strokeWidth="1">
+      <svg
+        key={i}
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="#0f172a"
+        stroke="#0f172a"
+        strokeWidth="1"
+      >
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
       </svg>
     ))}
@@ -74,8 +82,13 @@ export default function Testimonials() {
 
   useEffect(() => {
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.1 }
+      ([e]) => {
+        if (e.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.1 },
     );
     if (sectionRef.current) obs.observe(sectionRef.current);
     return () => obs.disconnect();
@@ -85,18 +98,30 @@ export default function Testimonials() {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setFading(true);
-      setTimeout(() => { setActive(a => (a + 1) % TESTIMONIALS.length); setFading(false); }, 280);
+      setTimeout(() => {
+        setActive((a) => (a + 1) % TESTIMONIALS.length);
+        setFading(false);
+      }, 280);
     }, 5000);
   }, []);
 
-  useEffect(() => { resetTimer(); return () => clearInterval(timerRef.current); }, [resetTimer]);
-
-  const goTo = useCallback((i) => {
-    if (i === active || fading) return;
-    setFading(true);
-    setTimeout(() => { setActive(i); setFading(false); }, 280);
+  useEffect(() => {
     resetTimer();
-  }, [active, fading, resetTimer]);
+    return () => clearInterval(timerRef.current);
+  }, [resetTimer]);
+
+  const goTo = useCallback(
+    (i) => {
+      if (i === active || fading) return;
+      setFading(true);
+      setTimeout(() => {
+        setActive(i);
+        setFading(false);
+      }, 280);
+      resetTimer();
+    },
+    [active, fading, resetTimer],
+  );
 
   const t = TESTIMONIALS[active];
 
@@ -209,19 +234,40 @@ export default function Testimonials() {
       `}</style>
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-
         {/* ─── Header ─── */}
         <div
           className={`bz-sans bz-fade-in ${visible ? "visible" : "hidden"}`}
           style={{ textAlign: "center", marginBottom: 52 }}
         >
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            border: "1.5px solid #e4e4e7", borderRadius: 100,
-            padding: "6px 16px", marginBottom: 20,
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#0c1526", flexShrink: 0 }} />
-            <span style={{ fontSize: 10.5, fontWeight: 600, color: "#71717a", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              border: "1.5px solid #e4e4e7",
+              borderRadius: 100,
+              padding: "6px 16px",
+              marginBottom: 20,
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "#0c1526",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 600,
+                color: "#71717a",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
               Real stories
             </span>
           </div>
@@ -237,13 +283,29 @@ export default function Testimonials() {
               margin: "0 0 14px",
             }}
           >
-            Shops that run<br />
+            Shops that run
+            <br />
             <em style={{ fontStyle: "italic" }}>smarter with BizEzy.</em>
           </h2>
 
-          <div style={{ width: 40, height: 2.5, background: "#0c1526", margin: "0 auto 14px" }} />
+          <div
+            style={{
+              width: 40,
+              height: 2.5,
+              background: "#0c1526",
+              margin: "0 auto 14px",
+            }}
+          />
 
-          <p style={{ fontSize: 14, color: "#a1a1aa", fontWeight: 300, lineHeight: 1.6, margin: 0 }}>
+          <p
+            style={{
+              fontSize: 14,
+              color: "#a1a1aa",
+              fontWeight: 300,
+              lineHeight: 1.6,
+              margin: 0,
+            }}
+          >
             Real business owners. Real numbers. Zero fluff.
           </p>
         </div>
@@ -251,7 +313,14 @@ export default function Testimonials() {
         {/* ─── Tabs ─── */}
         <div
           className={`bz-sans bz-fade-in ${visible ? "visible" : "hidden"}`}
-          style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 32, transitionDelay: "0.12s" }}
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: 8,
+            marginBottom: 32,
+            transitionDelay: "0.12s",
+          }}
         >
           {TESTIMONIALS.map((p, i) => (
             <button
@@ -262,7 +331,8 @@ export default function Testimonials() {
               <div
                 className="bz-tab-dot"
                 style={{
-                  background: i === active ? "rgba(255,255,255,0.15)" : p.accentBg,
+                  background:
+                    i === active ? "rgba(255,255,255,0.15)" : p.accentBg,
                   color: i === active ? "#fff" : p.accentText,
                   border: `1.5px solid ${i === active ? "rgba(255,255,255,0.2)" : p.accentBorder}`,
                 }}
@@ -280,29 +350,82 @@ export default function Testimonials() {
           style={{ transitionDelay: "0.22s" }}
         >
           <div className={`bz-card ${fading ? "fading" : ""}`}>
-
             {/* Left */}
             <div className="bz-left">
-
               {/* Avatar */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
                 <div className="bz-avatar">
                   {t.av}
                   <div className="bz-verified">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="8"
+                      height="8"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
                 </div>
 
                 <div>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0c1526", lineHeight: 1.3 }}>{t.name}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 300, color: "#a1a1aa" }}>{t.role}</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "#0c1526",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {t.name}
+                  </p>
+                  <p
+                    style={{
+                      margin: "2px 0 0",
+                      fontSize: 12,
+                      fontWeight: 300,
+                      color: "#a1a1aa",
+                    }}
+                  >
+                    {t.role}
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      marginTop: 6,
+                    }}
+                  >
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#a1a1aa"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <span style={{ fontSize: 11, color: "#a1a1aa", fontWeight: 300 }}>{t.location}</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: "#a1a1aa",
+                        fontWeight: 300,
+                      }}
+                    >
+                      {t.location}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -310,15 +433,31 @@ export default function Testimonials() {
               <StarRow />
 
               {/* Tag */}
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: "#0c1526", color: "#fff",
-                borderRadius: 8, padding: "5px 12px",
-                fontSize: 11, fontWeight: 600,
-                letterSpacing: "0.08em", alignSelf: "flex-start",
-                textTransform: "uppercase",
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff", opacity: 0.6 }} />
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "#0c1526",
+                  color: "#fff",
+                  borderRadius: 8,
+                  padding: "5px 12px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  alignSelf: "flex-start",
+                  textTransform: "uppercase",
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    opacity: 0.6,
+                  }}
+                />
                 {t.tag}
               </div>
 
@@ -332,11 +471,27 @@ export default function Testimonials() {
               >
                 <div
                   className="bz-serif"
-                  style={{ fontSize: 34, color: "#0c1526", fontWeight: 400, letterSpacing: "-0.02em", lineHeight: 1, fontStyle: "italic", marginBottom: 5 }}
+                  style={{
+                    fontSize: 34,
+                    color: "#0c1526",
+                    fontWeight: 400,
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1,
+                    fontStyle: "italic",
+                    marginBottom: 5,
+                  }}
                 >
                   {t.metric.val}
                 </div>
-                <div style={{ fontSize: 10.5, color: "#71717a", fontWeight: 400, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    color: "#71717a",
+                    fontWeight: 400,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
                   {t.metric.label}
                 </div>
               </div>
@@ -344,11 +499,17 @@ export default function Testimonials() {
 
             {/* Right */}
             <div className="bz-right">
-
               {/* Decorative quote mark */}
               <div
                 className="bz-serif"
-                style={{ fontSize: 88, lineHeight: 0.65, color: "#0c1526", opacity: 0.07, marginBottom: 20, userSelect: "none" }}
+                style={{
+                  fontSize: 88,
+                  lineHeight: 0.65,
+                  color: "#0c1526",
+                  opacity: 0.07,
+                  marginBottom: 20,
+                  userSelect: "none",
+                }}
               >
                 "
               </div>
@@ -367,27 +528,68 @@ export default function Testimonials() {
                 "{t.title}"
               </h3>
 
-              <p style={{
-                fontSize: 14.5, fontWeight: 300, color: "#71717a",
-                lineHeight: 1.85, margin: 0, flex: 1,
-              }}>
+              <p
+                style={{
+                  fontSize: 14.5,
+                  fontWeight: 300,
+                  color: "#71717a",
+                  lineHeight: 1.85,
+                  margin: 0,
+                  flex: 1,
+                }}
+              >
                 {t.text}
               </p>
 
               {/* Bottom row */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 36, gap: 16, flexWrap: "wrap" }}>
-
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginTop: 36,
+                  gap: 16,
+                  flexWrap: "wrap",
+                }}
+              >
                 {/* Progress bar + counter */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                  <div style={{ flex: 1, height: 2, background: "#f0f0f0", borderRadius: 99, overflow: "hidden" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    flex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 2,
+                      background: "#f0f0f0",
+                      borderRadius: 99,
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
                       key={`bar-${active}`}
                       className="bz-progress-fill"
-                      style={{ height: "100%", borderRadius: 99, background: "#0c1526" }}
+                      style={{
+                        height: "100%",
+                        borderRadius: 99,
+                        background: "#0c1526",
+                      }}
                     />
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: "#a1a1aa", whiteSpace: "nowrap" }}>
-                    {String(active + 1).padStart(2, "0")} / {String(TESTIMONIALS.length).padStart(2, "0")}
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: "#a1a1aa",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {String(active + 1).padStart(2, "0")} /{" "}
+                    {String(TESTIMONIALS.length).padStart(2, "0")}
                   </span>
                 </div>
 
@@ -402,14 +604,30 @@ export default function Testimonials() {
                       />
                     ))}
                   </div>
-                  <div style={{ width: 1, height: 20, background: "#e4e4e7" }} />
+                  <div
+                    style={{ width: 1, height: 20, background: "#e4e4e7" }}
+                  />
                   <div style={{ display: "flex", gap: 6 }}>
                     <button
                       className="bz-nav-btn"
-                      onClick={() => goTo((active - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)}
+                      onClick={() =>
+                        goTo(
+                          (active - 1 + TESTIMONIALS.length) %
+                            TESTIMONIALS.length,
+                        )
+                      }
                       aria-label="Previous"
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M15 18l-6-6 6-6" />
                       </svg>
                     </button>
@@ -418,7 +636,16 @@ export default function Testimonials() {
                       onClick={() => goTo((active + 1) % TESTIMONIALS.length)}
                       aria-label="Next"
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M9 18l6-6-6-6" />
                       </svg>
                     </button>
@@ -433,18 +660,38 @@ export default function Testimonials() {
         <div
           className={`bz-sans bz-fade-in ${visible ? "visible" : "hidden"}`}
           style={{
-            display: "flex", flexWrap: "wrap", justifyContent: "center",
-            gap: "10px 32px", marginTop: 36,
-            paddingTop: 28, borderTop: "1.5px solid #f0f0f0",
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "10px 32px",
+            marginTop: 36,
+            paddingTop: 28,
+            borderTop: "1.5px solid #f0f0f0",
             transitionDelay: "0.4s",
           }}
         >
-          {["Trusted by shop owners", "Across Maharashtra & beyond", "Growing faster", "Real businesses, real results"].map((txt, i) => (
+          {[
+            "Trusted by shop owners",
+            "Across Maharashtra & beyond",
+            "Growing faster",
+            "Real businesses, real results",
+          ].map((txt, i) => (
             <div key={i} className="bz-trust-item">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c1526" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0c1526"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="20 6 9 17 4 12" />
               </svg>
-              <span style={{ fontSize: 12, color: "#71717a", fontWeight: 400 }}>{txt}</span>
+              <span style={{ fontSize: 12, color: "#71717a", fontWeight: 400 }}>
+                {txt}
+              </span>
             </div>
           ))}
         </div>

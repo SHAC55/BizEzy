@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BackHandler, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, Text, TextInput, View, ActivityIndicator, Linking,
+  Animated as RNAnimated, Easing,
 } from "react-native";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn, FadeOut, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
-import { SubmitOverlay } from "../components/SubmitOverlay";
 import { createSale, fetchCustomers, fetchProducts } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
@@ -24,22 +24,232 @@ type SaleItem = { productId: string; quantity: string; price: string };
 
 const fmt = (v: number | string) => `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
+// ── Save Stage Overlay ───────────────────────────────────────────
+type SaveStage = "validating" | "saving" | "syncing" | "done";
+
+const STAGE_CONFIG: Record<SaveStage, { label: string; sub: string; color: string }> = {
+  validating: { label: "Validating",  sub: "Checking your order…",        color: "#6366F1" },
+  saving:     { label: "Recording",   sub: "Writing sale to ledger…",      color: "#F59E0B" },
+  syncing:    { label: "Syncing",     sub: "Refreshing your dashboard…",   color: "#10B981" },
+  done:       { label: "Sale Done!",  sub: "Transaction recorded ✓",       color: "#10B981" },
+};
+
+const SaveOverlay = ({
+  visible,
+  stage,
+  customerName,
+  totalAmount,
+}: {
+  visible: boolean;
+  stage: SaveStage;
+  customerName: string;
+  totalAmount: string;
+}) => {
+  const spinAnim     = useRef(new RNAnimated.Value(0)).current;
+  const pulseAnim    = useRef(new RNAnimated.Value(1)).current;
+  const progressAnim = useRef(new RNAnimated.Value(0)).current;
+
+  const stageOrder: SaveStage[] = ["validating", "saving", "syncing", "done"];
+  const stageIndex = stageOrder.indexOf(stage);
+  const progress   = stageIndex === -1 ? 0 : (stageIndex + 1) / stageOrder.length;
+
+  useEffect(() => {
+    if (!visible) return;
+    spinAnim.setValue(0);
+    const spin = RNAnimated.loop(
+      RNAnimated.timing(spinAnim, { toValue: 1, duration: 1200, easing: Easing.linear, useNativeDriver: true })
+    );
+    spin.start();
+    const pulse = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(pulseAnim, { toValue: 1.08, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        RNAnimated.timing(pulseAnim, { toValue: 1,    duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => { spin.stop(); pulse.stop(); };
+  }, [visible, stage]);
+
+  useEffect(() => {
+    RNAnimated.timing(progressAnim, {
+      toValue: progress,
+      duration: 450,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  if (!visible) return null;
+
+  const cfg    = STAGE_CONFIG[stage];
+  const isDone = stage === "done";
+  const spinDeg = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+
+  return (
+    <Animated.View
+      entering={FadeIn.duration(200)}
+      exiting={FadeOut.duration(300)}
+      style={{
+        position: "absolute", inset: 0, zIndex: 100,
+        backgroundColor: "rgba(0,0,0,0.90)",
+        alignItems: "center", justifyContent: "center",
+      }}
+    >
+      <Animated.View
+        entering={ZoomIn.duration(320).springify().damping(14)}
+        exiting={ZoomOut.duration(200)}
+        style={{
+          backgroundColor: "#0D1A12",
+          borderRadius: 28,
+          padding: 32,
+          width: 300,
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: "rgba(16,185,129,0.12)",
+          shadowColor: "#10B981",
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.15,
+          shadowRadius: 40,
+          elevation: 20,
+        }}
+      >
+        {/* Icon / Avatar */}
+        <RNAnimated.View style={{ transform: [{ scale: pulseAnim }], marginBottom: 20 }}>
+          <View
+            style={{
+              height: 72, width: 72, borderRadius: 20,
+              backgroundColor: isDone ? "#052e16" : "#0a1a0f",
+              alignItems: "center", justifyContent: "center",
+              borderWidth: 1.5,
+              borderColor: isDone ? "#10B981" : "#1a3a20",
+              shadowColor: cfg.color,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isDone ? 0.5 : 0.2,
+              shadowRadius: 16,
+              elevation: 10,
+            }}
+          >
+            <MaterialIcons
+              name={isDone ? "check-circle" : "add-shopping-cart"}
+              size={32}
+              color={cfg.color}
+            />
+          </View>
+
+          {/* Spinning ring */}
+          {!isDone && (
+            <RNAnimated.View
+              style={{
+                position: "absolute", inset: -6,
+                borderRadius: 28,
+                borderWidth: 2,
+                borderColor: "transparent",
+                borderTopColor: cfg.color,
+                borderRightColor: `${cfg.color}44`,
+                transform: [{ rotate: spinDeg }],
+              }}
+            />
+          )}
+
+          {/* Done badge */}
+          {isDone && (
+            <Animated.View
+              entering={ZoomIn.duration(300).springify()}
+              style={{
+                position: "absolute", bottom: -4, right: -4,
+                backgroundColor: "#0D1A12",
+                borderRadius: 12, padding: 2,
+              }}
+            >
+              <MaterialIcons name="verified" size={20} color="#10B981" />
+            </Animated.View>
+          )}
+        </RNAnimated.View>
+
+        {/* Sale details */}
+        {customerName.trim() ? (
+          <Text style={{ fontSize: 13, color: "#34d399", fontWeight: "700", marginBottom: 2, textAlign: "center" }} numberOfLines={1}>
+            {customerName.trim()}
+          </Text>
+        ) : null}
+        {totalAmount !== "₹0" && (
+          <Text style={{ fontSize: 22, fontWeight: "800", color: "#fff", marginBottom: 8, letterSpacing: -0.5 }}>
+            {totalAmount}
+          </Text>
+        )}
+
+        {/* Stage label */}
+        <Text style={{ fontSize: 18, fontWeight: "800", color: "#fff", marginBottom: 4, textAlign: "center", letterSpacing: -0.3 }}>
+          {cfg.label}
+        </Text>
+        <Text style={{ fontSize: 13, color: "#4a7a5a", textAlign: "center", marginBottom: 24, lineHeight: 18 }}>
+          {cfg.sub}
+        </Text>
+
+        {/* Progress bar */}
+        <View style={{ width: "100%", height: 4, backgroundColor: "#1a3a20", borderRadius: 4, overflow: "hidden", marginBottom: 20 }}>
+          <RNAnimated.View
+            style={{
+              height: "100%",
+              borderRadius: 4,
+              backgroundColor: cfg.color,
+              width: progressAnim.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+              shadowColor: cfg.color,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.9,
+              shadowRadius: 4,
+            }}
+          />
+        </View>
+
+        {/* Stage dots */}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {stageOrder.map((s, i) => {
+            const active  = i <= stageIndex;
+            const current = i === stageIndex;
+            return (
+              <View
+                key={s}
+                style={{
+                  height: current ? 8 : 6,
+                  width: current ? 20 : 6,
+                  borderRadius: 4,
+                  backgroundColor: active ? cfg.color : "#1a3a20",
+                  opacity: active ? 1 : 0.5,
+                }}
+              />
+            );
+          })}
+        </View>
+
+        <Text style={{ fontSize: 11, color: "#2d5a3a", marginTop: 12, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>
+          Step {Math.min(stageIndex + 1, stageOrder.length)} of {stageOrder.length}
+        </Text>
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+// ── Main Component ───────────────────────────────────────────────
 export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps) => {
   const { session } = useAuth();
   const qc = useQueryClient();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts]   = useState<Product[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [productSearch, setProductSearch] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [items, setItems] = useState<SaleItem[]>([{ productId: "", quantity: "1", price: "0" }]);
-  const [discount, setDiscount] = useState("0");
-  const [gstRate, setGstRate] = useState("18");
-  const [paidAmount, setPaidAmount] = useState("0");
-  const [reminderDate, setReminderDate] = useState("");
+  const [productSearch, setProductSearch]   = useState("");
+  const [customerId, setCustomerId]         = useState("");
+  const [items, setItems]                   = useState<SaleItem[]>([{ productId: "", quantity: "1", price: "0" }]);
+  const [discount, setDiscount]             = useState("0");
+  const [gstRate, setGstRate]               = useState("18");
+  const [paidAmount, setPaidAmount]         = useState("0");
+  const [reminderDate, setReminderDate]     = useState("");
   const [reminderDateObj, setReminderDateObj] = useState<Date | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]               = useState(false);
+  const [saveStage, setSaveStage]           = useState<SaveStage>("validating");
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   const fmtDateDisplay = (d: Date) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const fmtDateBackend = (d: Date) => d.toISOString().split("T")[0];
@@ -51,7 +261,11 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
     setReminderDate(fmtDateBackend(selected));
   };
 
-  useEffect(() => { if (!loading) return; const sub = BackHandler.addEventListener("hardwareBackPress", () => true); return () => sub.remove(); }, [loading]);
+  useEffect(() => {
+    if (!loading) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
+    return () => sub.remove();
+  }, [loading]);
 
   useEffect(() => {
     const token = session?.tokens.accessToken;
@@ -62,16 +276,16 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
     ]).then(([c, p]) => { setCustomers(c.customers); setProducts(p.products); });
   }, []);
 
-  const subTotal = useMemo(() => items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0), [items]);
+  const subTotal       = useMemo(() => items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0), [items]);
   const discountAmount = Math.min(Number(discount) || 0, subTotal);
-  const taxableAmount = Math.max(subTotal - discountAmount, 0);
-  const gstAmount = Number(((taxableAmount * (Number(gstRate) || 0)) / 100).toFixed(2));
-  const total = Number((taxableAmount + gstAmount).toFixed(2));
-  const due = Math.max(total - (Number(paidAmount) || 0), 0);
+  const taxableAmount  = Math.max(subTotal - discountAmount, 0);
+  const gstAmount      = Number(((taxableAmount * (Number(gstRate) || 0)) / 100).toFixed(2));
+  const total          = Number((taxableAmount + gstAmount).toFixed(2));
+  const due            = Math.max(total - (Number(paidAmount) || 0), 0);
 
   const filteredCustomers = customers.filter((c) => `${c.name} ${c.mobile}`.toLowerCase().includes(customerSearch.toLowerCase()));
-  const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()));
-  const selectedCustomer = customers.find((c) => c.id === customerId);
+  const filteredProducts  = products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  const selectedCustomer  = customers.find((c) => c.id === customerId);
 
   const updateItem = (i: number, next: Partial<SaleItem>) => {
     const copy = [...items]; copy[i] = { ...copy[i], ...next };
@@ -84,40 +298,64 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
     const token = session?.tokens.accessToken;
     if (!token) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setLoading(true);
+
     try {
+      setLoading(true);
+      setSaveStage("validating");
+      await sleep(500);
+
+      setSaveStage("saving");
       const res = await createSale(token, {
-        customerId, items: items.map((i) => ({ productId: i.productId, quantity: Number(i.quantity), unitPrice: Number(i.price) })),
-        subtotalAmount: subTotal, discountAmount, gstRate: Number(gstRate) || 0, gstAmount, totalAmount: total, paidAmount: Number(paidAmount), reminderDate: reminderDate || undefined,
+        customerId,
+        items: items.map((i) => ({ productId: i.productId, quantity: Number(i.quantity), unitPrice: Number(i.price) })),
+        subtotalAmount: subTotal, discountAmount, gstRate: Number(gstRate) || 0,
+        gstAmount, totalAmount: total, paidAmount: Number(paidAmount),
+        reminderDate: reminderDate || undefined,
       });
+
+      setSaveStage("syncing");
       await Promise.all([
-        qc.invalidateQueries({ queryKey: queryKeys.sales.all, refetchType: "all" }),
-        qc.invalidateQueries({ queryKey: queryKeys.customers.all, refetchType: "all" }),
-        qc.invalidateQueries({ queryKey: queryKeys.products.all, refetchType: "all" }),
-        qc.invalidateQueries({ queryKey: queryKeys.dashboard.all, refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: queryKeys.sales.all,      refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: queryKeys.customers.all,  refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: queryKeys.products.all,   refetchType: "all" }),
+        qc.invalidateQueries({ queryKey: queryKeys.dashboard.all,  refetchType: "all" }),
       ]);
+
+      await sleep(400);
+      setSaveStage("done");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await sleep(900);
+
       Toast.show({ type: "success", text1: "Sale Created! 🎉", text2: `${fmt(total)} recorded.` });
 
-      if (res.lowStockProducts && res.lowStockProducts.length > 0 && session?.user?.mobile) {
+      if ((res.lowStockProducts?.length ?? 0) > 0 && session?.user?.mobile) {
         setTimeout(async () => {
-          const list = res.lowStockProducts!.map(p => `- ${p.name} (Left: ${p.quantity}, Min: ${p.minimumQuantity})`).join("\n");
-          const msg = `🚨 *Low Stock Alert*\n\n${list}\n\nPlease restock soon.`;
+          const list  = res.lowStockProducts!.map((p: any) => `- ${p.name} (Left: ${p.quantity}, Min: ${p.minimumQuantity})`).join("\n");
+          const msg   = `🚨 *Low Stock Alert*\n\n${list}\n\nPlease restock soon.`;
           const digits = session.user!.mobile!.replace(/\D/g, "");
-          const phone = digits.startsWith("91") && digits.length >= 12 ? digits : `91${digits}`;
+          const phone  = digits.startsWith("91") && digits.length >= 12 ? digits : `91${digits}`;
           try { await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`); } catch {}
         }, 500);
       }
+
       onCreated(res.sale.id);
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Toast.show({ type: "error", text1: "Sale Failed", text2: err instanceof Error ? err.message : "" });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <AppLayout currentRoute="sales" title="New Sale" subtitle="Easy billing & due tracking" onNavigate={onNavigate}>
-      <SubmitOverlay visible={loading} message="Creating sale..." />
+      <SaveOverlay
+        visible={loading}
+        stage={saveStage}
+        customerName={selectedCustomer?.name ?? ""}
+        totalAmount={fmt(total)}
+      />
+
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
         <ScrollView automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false} contentContainerClassName="px-4 pb-36 pt-3">
 
@@ -268,7 +506,6 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
               </View>
               <MiniField label="Amount Paid (₹)" icon="currency-rupee" value={paidAmount} onChangeText={setPaidAmount} />
 
-              {/* Reminder */}
               <View className="mt-3">
                 <Text className="text-[10px] font-semibold text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">Reminder Date</Text>
                 <Pressable onPress={() => setShowDatePicker(true)} className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3.5">
@@ -317,16 +554,18 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
           {/* ── Submit ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(400)}>
             <Pressable
-              onPress={handleSubmit} disabled={loading || !customerId}
+              onPress={handleSubmit}
+              disabled={loading || !customerId}
               android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
               className={`flex-row items-center justify-center gap-2.5 rounded-2xl ${loading || !customerId ? "bg-slate-300" : "bg-slate-900"}`}
               style={{ paddingVertical: 18, shadowColor: "#0F172A", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6 }}
             >
-              {loading ? <ActivityIndicator size={18} color="#fff" /> : <MaterialIcons name="check-circle" size={20} color="#fff" />}
-              <Text className="text-[16px] font-bold text-white">{loading ? "Creating Sale..." : "Create Sale"}</Text>
+              <MaterialIcons name="check-circle" size={20} color="#fff" />
+              <Text className="text-[16px] font-bold text-white">Create Sale</Text>
             </Pressable>
             {!customerId && <Text className="text-center text-[11px] text-slate-400 mt-2">Select a customer to continue</Text>}
           </Animated.View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </AppLayout>

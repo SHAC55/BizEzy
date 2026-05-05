@@ -1,16 +1,16 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BackHandler, KeyboardAvoidingView, Platform,
   Pressable, ScrollView, Text, TextInput, View, ActivityIndicator,
+  Animated as RNAnimated, Easing,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn, FadeOut, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
 import { FormBottomSheet } from "../components/FormBottomSheet";
-import { SubmitOverlay } from "../components/SubmitOverlay";
 import { createCustomer, fetchCustomer, updateCustomer } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
@@ -44,6 +44,219 @@ const validateField = (name: keyof FormState, value: string): string | undefined
   }
 };
 
+// ── Save Stage Overlay ───────────────────────────────────────────
+type SaveStage = "validating" | "saving" | "syncing" | "done";
+
+const STAGE_CONFIG: Record<SaveStage, { label: string; sub: string; icon: IconName; color: string }> = {
+  validating: { label: "Validating",   sub: "Checking your details…",     icon: "fact-check",       color: "#6366F1" },
+  saving:     { label: "Saving",       sub: "Writing to your book…",       icon: "save",             color: "#F59E0B" },
+  syncing:    { label: "Syncing",      sub: "Refreshing your dashboard…",  icon: "sync",             color: "#10B981" },
+  done:       { label: "All done!",    sub: "Customer saved successfully", icon: "check-circle",     color: "#10B981" },
+};
+
+const SaveOverlay = ({
+  visible,
+  stage,
+  isEdit,
+  customerName,
+  initials,
+}: {
+  visible: boolean;
+  stage: SaveStage;
+  isEdit: boolean;
+  customerName: string;
+  initials: string;
+}) => {
+  const spinAnim = useRef(new RNAnimated.Value(0)).current;
+  const pulseAnim = useRef(new RNAnimated.Value(1)).current;
+  const progressAnim = useRef(new RNAnimated.Value(0)).current;
+
+  const stageOrder: SaveStage[] = ["validating", "saving", "syncing", "done"];
+  const stageIndex = stageOrder.indexOf(stage);
+  const progress = stageIndex === -1 ? 0 : (stageIndex + 1) / stageOrder.length;
+
+  useEffect(() => {
+    if (!visible) return;
+    // Spin animation for the icon
+    spinAnim.setValue(0);
+    const spin = RNAnimated.loop(
+      RNAnimated.timing(spinAnim, { toValue: 1, duration: 1200, easing: Easing.linear, useNativeDriver: true })
+    );
+    spin.start();
+
+    // Pulse on avatar
+    const pulse = RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(pulseAnim, { toValue: 1.08, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        RNAnimated.timing(pulseAnim, { toValue: 1,    duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+
+    return () => { spin.stop(); pulse.stop(); };
+  }, [visible, stage]);
+
+  useEffect(() => {
+    RNAnimated.timing(progressAnim, {
+      toValue: progress,
+      duration: 450,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  if (!visible) return null;
+
+  const cfg = STAGE_CONFIG[stage];
+  const isDone = stage === "done";
+  const spinDeg = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+
+  return (
+    <Animated.View
+      entering={FadeIn.duration(200)}
+      exiting={FadeOut.duration(300)}
+      style={{
+        position: "absolute", inset: 0, zIndex: 100,
+        backgroundColor: "rgba(0,0,0,0.88)",
+        alignItems: "center", justifyContent: "center",
+      }}
+    >
+      {/* Card */}
+      <Animated.View
+        entering={ZoomIn.duration(320).springify().damping(14)}
+        exiting={ZoomOut.duration(200)}
+        style={{
+          backgroundColor: "#111111",
+          borderRadius: 28,
+          padding: 32,
+          width: 300,
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.07)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 24 },
+          shadowOpacity: 0.5,
+          shadowRadius: 40,
+          elevation: 20,
+        }}
+      >
+        {/* Avatar */}
+        <RNAnimated.View
+          style={{
+            transform: [{ scale: pulseAnim }],
+            marginBottom: 20,
+          }}
+        >
+          <View
+            style={{
+              height: 72, width: 72, borderRadius: 20,
+              backgroundColor: isDone ? "#10B981" : "#6366F1",
+              alignItems: "center", justifyContent: "center",
+              shadowColor: isDone ? "#10B981" : "#6366F1",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.45,
+              shadowRadius: 16,
+              elevation: 10,
+            }}
+          >
+            {customerName.trim() ? (
+              <Text style={{ fontSize: 26, fontWeight: "800", color: "#fff" }}>{initials}</Text>
+            ) : (
+              <MaterialIcons name="person" size={32} color="#fff" />
+            )}
+          </View>
+
+          {/* Spinning ring */}
+          {!isDone && (
+            <RNAnimated.View
+              style={{
+                position: "absolute", inset: -6,
+                borderRadius: 28,
+                borderWidth: 2,
+                borderColor: "transparent",
+                borderTopColor: cfg.color,
+                borderRightColor: `${cfg.color}55`,
+                transform: [{ rotate: spinDeg }],
+              }}
+            />
+          )}
+
+          {/* Done checkmark badge */}
+          {isDone && (
+            <Animated.View
+              entering={ZoomIn.duration(300).springify()}
+              style={{
+                position: "absolute", bottom: -4, right: -4,
+                backgroundColor: "#111111",
+                borderRadius: 12, padding: 2,
+              }}
+            >
+              <MaterialIcons name="check-circle" size={20} color="#10B981" />
+            </Animated.View>
+          )}
+        </RNAnimated.View>
+
+        {/* Customer name */}
+        {customerName.trim() ? (
+          <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff", marginBottom: 2, textAlign: "center" }} numberOfLines={1}>
+            {customerName.trim()}
+          </Text>
+        ) : null}
+
+        {/* Stage label */}
+        <Text style={{ fontSize: 20, fontWeight: "800", color: "#fff", marginBottom: 4, textAlign: "center", letterSpacing: -0.4 }}>
+          {cfg.label}
+        </Text>
+        <Text style={{ fontSize: 13, color: "#555", textAlign: "center", marginBottom: 24, lineHeight: 18 }}>
+          {cfg.sub}
+        </Text>
+
+        {/* Progress bar */}
+        <View style={{ width: "100%", height: 4, backgroundColor: "#222", borderRadius: 4, overflow: "hidden", marginBottom: 20 }}>
+          <RNAnimated.View
+            style={{
+              height: "100%",
+              borderRadius: 4,
+              backgroundColor: cfg.color,
+              width: progressAnim.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+              shadowColor: cfg.color,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.8,
+              shadowRadius: 4,
+            }}
+          />
+        </View>
+
+        {/* Stage dots */}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {stageOrder.map((s, i) => {
+            const active = i <= stageIndex;
+            const current = i === stageIndex;
+            return (
+              <View
+                key={s}
+                style={{
+                  height: current ? 8 : 6,
+                  width: current ? 20 : 6,
+                  borderRadius: 4,
+                  backgroundColor: active ? cfg.color : "#333",
+                  opacity: active ? 1 : 0.5,
+                }}
+              />
+            );
+          })}
+        </View>
+
+        {/* Step label */}
+        <Text style={{ fontSize: 11, color: "#444", marginTop: 12, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>
+          Step {Math.min(stageIndex + 1, stageOrder.length)} of {stageOrder.length}
+        </Text>
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+// ── Main Component ───────────────────────────────────────────────
 export const AddCustomerPage = ({
   customerId, onBack, onCreated, onNavigate, onRequestClose, presentation = "screen",
 }: AddCustomerPageProps) => {
@@ -54,6 +267,7 @@ export const AddCustomerPage = ({
   const [touched, setTouched] = useState<FormTouched>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [saveStage, setSaveStage] = useState<SaveStage>("validating");
   const [isBootstrapping, setIsBootstrapping] = useState(Boolean(customerId));
   const isEdit = Boolean(customerId);
 
@@ -82,6 +296,8 @@ export const AddCustomerPage = ({
     setErrors((p) => ({ ...p, [name]: validateField(name, value) }));
   };
 
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   const handleSubmit = async () => {
     const token = session?.tokens.accessToken;
     if (!token) return;
@@ -104,29 +320,38 @@ export const AddCustomerPage = ({
 
     try {
       setIsLoading(true);
+      setSaveStage("validating");
       setSubmitError(null);
+      await sleep(500); // brief pause on validating so user sees it
+
+      setSaveStage("saving");
+      let savedId = customerId;
       if (customerId) {
         await updateCustomer(token, customerId, payload);
-        await Promise.all([
-          qc.invalidateQueries({ queryKey: queryKeys.customers.all }),
-          qc.invalidateQueries({ queryKey: queryKeys.customers.detail(customerId) }),
-          qc.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
-          qc.invalidateQueries({ queryKey: queryKeys.sales.all }),
-        ]);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Toast.show({ type: "success", text1: "Customer Updated ✓", text2: `${payload.name} saved.` });
-        onCreated(customerId);
       } else {
         const customer = await createCustomer(token, payload);
-        await Promise.all([
-          qc.invalidateQueries({ queryKey: queryKeys.customers.all }),
-          qc.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
-          qc.invalidateQueries({ queryKey: queryKeys.sales.all }),
-        ]);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Toast.show({ type: "success", text1: "Customer Created! 🎉", text2: `${payload.name} added to your book.` });
-        onCreated(customer.id);
+        savedId = customer.id;
       }
+
+      setSaveStage("syncing");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.customers.all }),
+        customerId && qc.invalidateQueries({ queryKey: queryKeys.customers.detail(customerId) }),
+        qc.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+        qc.invalidateQueries({ queryKey: queryKeys.sales.all }),
+      ].filter(Boolean));
+
+      await sleep(400);
+      setSaveStage("done");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await sleep(900); // let user enjoy the done state
+
+      Toast.show({
+        type: "success",
+        text1: isEdit ? "Customer Updated ✓" : "Customer Created! 🎉",
+        text2: isEdit ? `${payload.name} saved.` : `${payload.name} added to your book.`,
+      });
+      onCreated(savedId);
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       const msg = err?.message || "Failed to save customer";
@@ -139,7 +364,6 @@ export const AddCustomerPage = ({
 
   const closeHandler = onRequestClose ?? onBack;
 
-  // Live preview initials
   const previewInitials = form.name.trim()
     ? form.name.trim().split(" ").map((p) => p[0]?.toUpperCase() || "").join("").slice(0, 2)
     : "?";
@@ -256,13 +480,9 @@ export const AddCustomerPage = ({
               className={`flex-row items-center justify-center gap-2.5 rounded-2xl ${isLoading ? "bg-slate-300" : "bg-slate-900"}`}
               style={{ paddingVertical: 18, shadowColor: "#0F172A", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6 }}
             >
-              {isLoading ? (
-                <ActivityIndicator size={18} color="#fff" />
-              ) : (
-                <MaterialIcons name={isEdit ? "save" : "person-add"} size={20} color="#fff" />
-              )}
+              <MaterialIcons name={isEdit ? "save" : "person-add"} size={20} color="#fff" />
               <Text className="text-[16px] font-bold text-white">
-                {isLoading ? "Saving..." : isEdit ? "Update Customer" : "Create Customer"}
+                {isEdit ? "Update Customer" : "Create Customer"}
               </Text>
             </Pressable>
           </Animated.View>
@@ -288,7 +508,7 @@ export const AddCustomerPage = ({
   if (presentation === "sheet") {
     return (
       <FormBottomSheet title={isEdit ? "Edit Customer" : "Add Customer"} subtitle="Manage customer details." onClose={closeHandler}>
-        <SubmitOverlay visible={isLoading} message={isEdit ? "Updating..." : "Creating customer..."} />
+        <SaveOverlay visible={isLoading} stage={saveStage} isEdit={isEdit} customerName={form.name} initials={previewInitials} />
         {formBody}
       </FormBottomSheet>
     );
@@ -296,7 +516,7 @@ export const AddCustomerPage = ({
 
   return (
     <AppLayout currentRoute="customers" title={isEdit ? "Edit Customer" : "Add Customer"} subtitle="Manage customer profile" onNavigate={onNavigate}>
-      <SubmitOverlay visible={isLoading} message={isEdit ? "Updating..." : "Creating customer..."} />
+      <SaveOverlay visible={isLoading} stage={saveStage} isEdit={isEdit} customerName={form.name} initials={previewInitials} />
       {formBody}
     </AppLayout>
   );

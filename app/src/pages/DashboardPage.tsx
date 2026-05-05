@@ -93,102 +93,180 @@ export const DashboardPage = ({
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refetch} />}
         showsVerticalScrollIndicator={false}
       >
+
         {/* ─── Greeting Banner ─── */}
         <Animated.View entering={FadeInDown.duration(500).delay(0)}>
-          <View className="mx-4 mt-3 mb-5">
-            <Text className="text-[14px] text-slate-400 font-medium">{greeting},</Text>
-            <Text className="text-[26px] font-bold text-slate-900 tracking-tight -mt-0.5">
-              {firstName} 👋
-            </Text>
+          <View style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View>
+              <Text style={{ fontSize: 12, color: "#94A3B8", fontWeight: "600", letterSpacing: 1.2, textTransform: "uppercase" }}>
+                {greeting}
+              </Text>
+              <Text style={{ fontSize: 28, fontWeight: "800", color: "#0F172A", letterSpacing: -0.8, marginTop: 2 }}>
+                {firstName} 👋
+              </Text>
+            </View>
+            {/* Live badge */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#F0FDF4", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: "#BBF7D0" }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" }} />
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#15803D" }}>Live</Text>
+            </View>
           </View>
         </Animated.View>
 
         {/* ─── Hero Revenue Card ─── */}
         <Animated.View entering={FadeInDown.duration(500).delay(80)}>
           <View
-            className="mx-4 mb-5 rounded-[24px] overflow-hidden"
             style={{
+              marginHorizontal: 16,
+              marginBottom: 20,
+              borderRadius: 28,
+              overflow: "hidden",
               backgroundColor: "#0F172A",
-              shadowColor: "#0F172A",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
-              elevation: 10,
+              shadowColor: "#6366F1",
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.25,
+              shadowRadius: 24,
+              elevation: 12,
             }}
           >
-            {/* Top section */}
-            <View className="px-5 pt-5 pb-4">
-              <View className="flex-row items-center justify-between mb-4">
-                <View className="flex-row items-center gap-2">
-                  <View className="h-8 w-8 rounded-lg bg-indigo-500/20 items-center justify-center">
-                    <MaterialIcons name="account-balance-wallet" size={16} color="#818CF8" />
+            {/* Indigo accent bar */}
+            <View style={{ height: 3, backgroundColor: "#6366F1", width: "38%", borderBottomRightRadius: 3 }} />
+
+            {/* Main content */}
+            <View style={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18 }}>
+              {/* Label row */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(99,102,241,0.15)", alignItems: "center", justifyContent: "center" }}>
+                    <MaterialIcons name="account-balance-wallet" size={15} color="#818CF8" />
                   </View>
-                  <Text className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#475569", letterSpacing: 1.4, textTransform: "uppercase" }}>
                     Total Revenue
                   </Text>
                 </View>
-                <View className="flex-row items-center gap-1 bg-emerald-500/15 rounded-full px-2.5 py-1">
-                  <MaterialIcons name="trending-up" size={12} color="#34D399" />
-                  <Text className="text-[10px] font-bold text-emerald-400">
+                <View style={{ backgroundColor: "rgba(34,197,94,0.12)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <MaterialIcons name="arrow-upward" size={10} color="#34D399" />
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: "#34D399" }}>
                     {salesSummary.todaySalesCount} today
                   </Text>
                 </View>
               </View>
 
-              <Text className="text-[36px] font-bold text-white tracking-tight">
+              {/* Revenue amount */}
+              <Text style={{ fontSize: 40, fontWeight: "900", color: "#FFFFFF", letterSpacing: -1.5, lineHeight: 46 }}>
                 {fmt(salesSummary.totalRevenue)}
               </Text>
-              <Text className="text-[13px] text-slate-500 mt-1">
-                from {salesSummary.totalSales} total sales
+              <Text style={{ fontSize: 12, color: "#475569", marginTop: 5, fontWeight: "500" }}>
+                across {salesSummary.totalSales} transactions
               </Text>
             </View>
 
-            {/* Bottom metrics strip */}
-            <View className="flex-row border-t border-white/5">
-              <MetricPill
-                icon="today"
-                label="Today"
-                value={fmt(salesSummary.todaySalesAmount)}
-                color="#60A5FA"
-                border
-              />
-              <MetricPill
-                icon="calendar-month"
-                label="This Month"
-                value={fmt(salesSummary.monthlyRevenue)}
-                color="#A78BFA"
-                border
-              />
-              <MetricPill
-                icon="warning"
-                label="Outstanding"
-                value={fmt(salesSummary.totalOutstanding)}
-                color="#FB923C"
-              />
+            {/* Divider */}
+            <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.04)" }} />
+
+            {/* Bottom metric strip */}
+            <View style={{ flexDirection: "row" }}>
+              {[
+                { icon: "today" as IconName,          label: "Today",       value: fmt(salesSummary.todaySalesAmount),  color: "#60A5FA" },
+                { icon: "calendar-month" as IconName, label: "Month",       value: fmt(salesSummary.monthlyRevenue),    color: "#A78BFA" },
+                { icon: "warning" as IconName,        label: "Outstanding", value: fmt(salesSummary.totalOutstanding),  color: "#FB923C" },
+              ].map((m, i, arr) => (
+                <View
+                  key={m.label}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 14,
+                    paddingHorizontal: 10,
+                    alignItems: "center",
+                    borderRightWidth: i < arr.length - 1 ? 1 : 0,
+                    borderRightColor: "rgba(255,255,255,0.05)",
+                  }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.3 }} numberOfLines={1}>
+                    {m.value}
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 }}>
+                    <MaterialIcons name={m.icon} size={9} color={m.color} />
+                    <Text style={{ fontSize: 9, fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                      {m.label}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
         </Animated.View>
 
         {/* ─── Stat Cards Row ─── */}
         <Animated.View entering={FadeInDown.duration(500).delay(160)}>
-          <View className="flex-row px-4 gap-3 mb-5">
-            <StatCard
-              icon="groups"
-              label="Customers"
-              value={String(customerSummary.totalCustomers || 0)}
-              sub={`${customerSummary.pendingCustomers} with dues`}
-              iconBg="#EEF2FF"
-              iconColor="#6366F1"
-              dark
-            />
-            <StatCard
-              icon="receipt-long"
-              label="Total Sales"
-              value={String(salesSummary.totalSales || 0)}
-              sub={`${salesSummary.uniqueCustomers} customers`}
-              iconBg="#FEF3C7"
-              iconColor="#F59E0B"
-            />
+          <View style={{ flexDirection: "row", paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
+
+            {/* Customers card — light */}
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 20,
+                backgroundColor: "#FFFFFF",
+                padding: 16,
+                borderWidth: 1,
+                borderColor: "#F1F5F9",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 14 }}>
+                <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: "#EEF2FF", alignItems: "center", justifyContent: "center" }}>
+                  <MaterialIcons name="groups" size={15} color="#6366F1" />
+                </View>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: "#94A3B8", letterSpacing: 0.6, textTransform: "uppercase" }}>
+                  Customers
+                </Text>
+              </View>
+              <Text style={{ fontSize: 32, fontWeight: "900", color: "#0F172A", letterSpacing: -1 }}>
+                {customerSummary.totalCustomers || 0}
+              </Text>
+              <View style={{ marginTop: 8, alignSelf: "flex-start", backgroundColor: "#FEF3C7", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 10, fontWeight: "700", color: "#B45309" }}>
+                  {customerSummary.pendingCustomers} with dues
+                </Text>
+              </View>
+            </View>
+
+            {/* Total Sales card — dark */}
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 20,
+                backgroundColor: "#0F172A",
+                padding: 16,
+                shadowColor: "#0F172A",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.2,
+                shadowRadius: 12,
+                elevation: 4,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 14 }}>
+                <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: "rgba(245,158,11,0.15)", alignItems: "center", justifyContent: "center" }}>
+                  <MaterialIcons name="receipt-long" size={15} color="#FBBF24" />
+                </View>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: "#475569", letterSpacing: 0.6, textTransform: "uppercase" }}>
+                  Sales
+                </Text>
+              </View>
+              <Text style={{ fontSize: 32, fontWeight: "900", color: "#FFFFFF", letterSpacing: -1 }}>
+                {salesSummary.totalSales || 0}
+              </Text>
+              <View style={{ marginTop: 8, alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 10, fontWeight: "700", color: "#64748B" }}>
+                  {salesSummary.uniqueCustomers} customers
+                </Text>
+              </View>
+            </View>
+
           </View>
         </Animated.View>
 
@@ -199,9 +277,9 @@ export const DashboardPage = ({
               Quick Actions
             </Text>
             <View className="flex-row gap-3">
-              <ActionCard icon="add-shopping-cart" label="New Sale" color="#059669" bg="#ECFDF5" onPress={onOpenSales} />
-              <ActionCard icon="inventory-2" label="Add Stock" color="#6366F1" bg="#EEF2FF" onPress={onOpenAddInventory} />
-              <ActionCard icon="person-add" label="Customer" color="#F59E0B" bg="#FEF3C7" onPress={onOpenCustomers} />
+              <ActionCard icon="add-shopping-cart" label="New Sale"  color="#059669" bg="#ECFDF5" onPress={onOpenSales} />
+              <ActionCard icon="inventory-2"        label="Add Stock" color="#6366F1" bg="#EEF2FF" onPress={onOpenAddInventory} />
+              <ActionCard icon="person-add"         label="Customer" color="#F59E0B" bg="#FEF3C7" onPress={onOpenCustomers} />
             </View>
           </View>
         </Animated.View>
@@ -268,56 +346,16 @@ export const DashboardPage = ({
               Business Pulse
             </Text>
             <View className="flex-row gap-3">
-              <PulseCard
-                icon="payments"
-                label="Collected"
-                value={fmt(salesSummary.totalRevenue)}
-                color="#10B981"
-                bg="#ECFDF5"
-              />
-              <PulseCard
-                icon="schedule"
-                label="Pending"
-                value={fmt(customerSummary.totalDue)}
-                color="#EF4444"
-                bg="#FEF2F2"
-              />
+              <PulseCard icon="payments" label="Collected" value={fmt(salesSummary.totalRevenue)} color="#10B981" bg="#ECFDF5" />
+              <PulseCard icon="schedule" label="Pending"   value={fmt(customerSummary.totalDue)}  color="#EF4444" bg="#FEF2F2" />
             </View>
           </View>
         </Animated.View>
+
       </ScrollView>
     </AppLayout>
   );
 };
-
-// ── Metric Pill (inside hero card) ───────────────────────────────
-const MetricPill = ({ icon, label, value, color, border }: {
-  icon: IconName; label: string; value: string; color: string; border?: boolean;
-}) => (
-  <View className={`flex-1 py-3.5 px-3 items-center ${border ? "border-r border-white/5" : ""}`}>
-    <MaterialIcons name={icon} size={14} color={color} style={{ marginBottom: 4 }} />
-    <Text style={{ fontSize: 14, fontWeight: "800", color: "#FFFFFF" }} numberOfLines={1}>{value}</Text>
-    <Text style={{ fontSize: 9, fontWeight: "600", color: "#64748B", marginTop: 2, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
-  </View>
-);
-
-// ── Stat Card ────────────────────────────────────────────────────
-const StatCard = ({ icon, label, value, sub, iconBg, iconColor, dark }: {
-  icon: IconName; label: string; value: string; sub: string;
-  iconBg: string; iconColor: string; dark?: boolean;
-}) => (
-  <View
-    className={`flex-1 rounded-2xl p-4 ${dark ? "bg-slate-900" : "bg-white border border-slate-100"}`}
-    style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 }}
-  >
-    <View className="h-9 w-9 rounded-xl items-center justify-center mb-3" style={{ backgroundColor: dark ? "rgba(255,255,255,0.08)" : iconBg }}>
-      <MaterialIcons name={icon} size={17} color={dark ? "#FFFFFF" : iconColor} />
-    </View>
-    <Text className={`text-[24px] font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}>{value}</Text>
-    <Text className={`text-[11px] font-semibold mt-0.5 ${dark ? "text-slate-400" : "text-slate-500"}`}>{label}</Text>
-    <Text className={`text-[10px] mt-1 ${dark ? "text-slate-500" : "text-slate-400"}`}>{sub}</Text>
-  </View>
-);
 
 // ── Quick Action Card ────────────────────────────────────────────
 const ActionCard = ({ icon, label, color, bg, onPress }: {
