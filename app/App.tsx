@@ -154,7 +154,9 @@ const CustomerDetailScreen = ({ navigation, route }: ScreenProps<"CustomerDetail
 const UserDetailScreen = ({ navigation }: ScreenProps<"UserDetail">) => (
   <UserDetailPage
     onBack={() => navigation.goBack()}
-    onNavigate={() => {}}
+    onNavigate={(route) => {
+      if (route === "reminders") navigation.navigate("Reminders");
+    }}
   />
 );
 

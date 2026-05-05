@@ -15,7 +15,10 @@
     },
     "ios": {
       "bundleIdentifier": "com.bizeazy.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.bizeazy.app",

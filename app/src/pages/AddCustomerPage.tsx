@@ -27,11 +27,11 @@ type AddCustomerPageProps = {
   presentation?: "screen" | "sheet";
 };
 
-type FormState = { name: string; mobile: string; email: string; openingBalance: string; address: string; notes: string };
+type FormState = { name: string; mobile: string; address: string };
 type FormErrors = Partial<Record<keyof FormState, string>>;
 type FormTouched = Partial<Record<keyof FormState, boolean>>;
 
-const initialForm: FormState = { name: "", mobile: "", email: "", openingBalance: "0", address: "", notes: "" };
+const initialForm: FormState = { name: "", mobile: "", address: "" };
 
 const validateField = (name: keyof FormState, value: string): string | undefined => {
   switch (name) {
@@ -281,7 +281,7 @@ export const AddCustomerPage = ({
     const token = session?.tokens.accessToken;
     if (!customerId || !token) { setIsBootstrapping(false); return; }
     fetchCustomer(token, customerId)
-      .then((c) => setForm({ name: c.name, mobile: c.mobile, email: c.email ?? "", openingBalance: String(c.openingBalance ?? 0), address: c.address ?? "", notes: c.notes ?? "" }))
+      .then((c) => setForm({ name: c.name, mobile: c.mobile, address: c.address ?? "" }))
       .catch(() => setSubmitError("Failed to load customer"))
       .finally(() => setIsBootstrapping(false));
   }, [customerId]);
@@ -312,10 +312,7 @@ export const AddCustomerPage = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const payload = {
       name: form.name.trim(), mobile: form.mobile.trim(),
-      email: form.email.trim() || undefined,
-      openingBalance: Number(form.openingBalance || "0"),
       address: form.address.trim() || undefined,
-      notes: form.notes.trim() || undefined,
     };
 
     try {
@@ -412,41 +409,22 @@ export const AddCustomerPage = ({
             <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
               <Field label="Full Name" icon="person" placeholder="John Doe" value={form.name} error={errors.name}
                 onChangeText={(v) => handleChange("name", v)} onBlur={() => handleBlur("name", form.name)} />
-              <View className="flex-row gap-3">
-                <View className="flex-1">
-                  <Field label="Mobile" icon="phone" keyboardType="phone-pad" placeholder="9876543210" value={form.mobile} error={errors.mobile}
-                    onChangeText={(v) => handleChange("mobile", v)} onBlur={() => handleBlur("mobile", form.mobile)} />
-                </View>
-                <View className="flex-1">
-                  <Field label="Email" icon="mail" keyboardType="email-address" placeholder="optional" value={form.email}
-                    onChangeText={(v) => handleChange("email", v)} onBlur={() => handleBlur("email", form.email)} />
-                </View>
-              </View>
+              <Field label="Mobile" icon="phone" keyboardType="phone-pad" placeholder="9876543210" value={form.mobile} error={errors.mobile}
+                onChangeText={(v) => handleChange("mobile", v)} onBlur={() => handleBlur("mobile", form.mobile)} />
             </View>
           </Animated.View>
 
-          {/* ─── Address & Balance Section ─── */}
+          {/* ─── Address Section ─── */}
           <Animated.View entering={FadeInDown.duration(400).delay(160)}>
-            <SectionLabel icon="account-balance-wallet" color="#F59E0B" bg="#FEF3C7" label="Balance & Address" />
+            <SectionLabel icon="place" color="#F59E0B" bg="#FEF3C7" label="Address" />
             <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
-              <Field label="Opening Balance" icon="payments" keyboardType="decimal-pad" placeholder="0" value={form.openingBalance}
-                onChangeText={(v) => handleChange("openingBalance", v)} onBlur={() => handleBlur("openingBalance", form.openingBalance)} />
               <Field label="Address" icon="place" placeholder="Street, City" value={form.address}
                 onChangeText={(v) => handleChange("address", v)} onBlur={() => handleBlur("address", form.address)} />
             </View>
           </Animated.View>
 
-          {/* ─── Notes Section ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(240)}>
-            <SectionLabel icon="description" color="#10B981" bg="#ECFDF5" label="Notes" />
-            <View className="bg-white rounded-2xl border border-slate-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
-              <Field label="Customer Notes" icon="notes" placeholder="Any important notes…" multiline value={form.notes}
-                onChangeText={(v) => handleChange("notes", v)} onBlur={() => handleBlur("notes", form.notes)} />
-            </View>
-          </Animated.View>
-
           {/* ─── Live Preview ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(320)}>
+          <Animated.View entering={FadeInDown.duration(400).delay(240)}>
             <View
               className="rounded-2xl overflow-hidden mb-5"
               style={{ backgroundColor: "#0F172A", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 8 }}
@@ -462,17 +440,12 @@ export const AddCustomerPage = ({
                   </Text>
                   <Text className="text-[12px] text-slate-400 mt-0.5">{form.mobile || "Mobile number"}</Text>
                 </View>
-                {Number(form.openingBalance) > 0 && (
-                  <View className="bg-amber-500/15 rounded-full px-3 py-1.5">
-                    <Text className="text-[11px] font-bold text-amber-400">₹{form.openingBalance}</Text>
-                  </View>
-                )}
               </View>
             </View>
           </Animated.View>
 
           {/* ─── Submit Button ─── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+          <Animated.View entering={FadeInDown.duration(400).delay(320)}>
             <Pressable
               onPress={handleSubmit}
               disabled={isLoading}
