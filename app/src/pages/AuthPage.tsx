@@ -14,25 +14,40 @@ import { authAssets } from "../constants/auth";
 import { useAuthPageState } from "../hooks/useAuthPageState";
 import { SignInPage } from "./SignInPage";
 import { SignUpPage } from "./SignUpPage";
+import { ForgotPasswordPage } from "./ForgotPasswordPage";
+import { ResetPasswordPage } from "./ResetPasswordPage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export const AuthPage = () => {
   const {
     error,
+    forgotPasswordError,
+    forgotPasswordForm,
+    forgotPasswordSuccess,
     isApiConfigured,
     isBusy,
     isLogin,
     loginForm,
+    mode,
     registerForm,
     rememberMe,
+    resetPasswordError,
+    resetPasswordForm,
+    resetPasswordSuccess,
+    setForgotPasswordForm,
     setLoginForm,
     setRegisterForm,
+    setResetPasswordForm,
     showLoginPassword,
     showRegisterConfirmPassword,
     showRegisterPassword,
+    showResetConfirmPassword,
+    showResetPassword,
+    submitForgotPassword,
     submitGoogle,
     submitLogin,
     submitRegister,
+    submitResetPassword,
     switchMode,
     toggleFooterMode,
     toggleRememberMe,
@@ -40,9 +55,27 @@ export const AuthPage = () => {
     toggleShowLoginPassword,
     toggleShowRegisterConfirmPassword,
     toggleShowRegisterPassword,
+    toggleShowResetConfirmPassword,
+    toggleShowResetPassword,
   } = useAuthPageState();
 
-  const heroImage = isLogin ? authAssets.loginImage : authAssets.signupImage;
+  const isForgotPassword = mode === "forgotPassword";
+  const isResetPassword = mode === "resetPassword";
+  const isAuthFlow = isLogin || mode === "register";
+
+  const heroTitle =
+    mode === "login" ? "Welcome Back!" :
+    mode === "register" ? "Create Account" :
+    mode === "forgotPassword" ? "Forgot Password" :
+    "Reset Password";
+
+  const heroSubtitle =
+    mode === "login" ? "Ready to take control of your business? Sign in to continue." :
+    mode === "register" ? "Join us to streamline your business management." :
+    mode === "forgotPassword" ? "Enter your email to receive a password reset link." :
+    "Choose a new password for your account.";
+
+  const heroImage = mode === "register" ? authAssets.signupImage : authAssets.loginImage;
 
   return (
     <SafeAreaView className="flex-1 bg-[#e5e7eb]">
@@ -90,44 +123,72 @@ export const AuthPage = () => {
 
                   <View className="rounded-full bg-white/20 px-3 py-1.5">
                     <Text className="text-[11px] font-semibold uppercase tracking-[1.6px] text-white">
-                      BizFlow
+                      Bizezy
                     </Text>
                   </View>
                 </View>
 
                 <View className="px-5 pb-5">
                   <Text className="text-[31px] font-extrabold leading-[36px] text-white">
-                    {isLogin ? "Welcome Back!" : "Create Account"}
+                    {heroTitle}
                   </Text>
                   <Text className="mt-2 text-[14px] leading-[20px] text-white/85">
-                    {isLogin
-                      ? "Ready to take control of your business? Sign in to continue."
-                      : "Join us to streamline your business management."}
+                    {heroSubtitle}
                   </Text>
                 </View>
               </ImageBackground>
             </View>
 
             <View className="px-5 pb-5 pt-5">
-              <View className="mb-5 flex-row rounded-[18px] bg-[#f3f4f6] p-1.5">
-                <TabButton
-                  isActive={isLogin}
-                  label="Sign In"
+              {isAuthFlow ? (
+                <View className="mb-5 flex-row rounded-[18px] bg-[#f3f4f6] p-1.5">
+                  <TabButton
+                    isActive={isLogin}
+                    label="Sign In"
+                    onPress={() => switchMode("login")}
+                  />
+                  <TabButton
+                    isActive={!isLogin}
+                    label="Create Account"
+                    onPress={() => switchMode("register")}
+                  />
+                </View>
+              ) : (
+                <Pressable
                   onPress={() => switchMode("login")}
-                />
-                <TabButton
-                  isActive={!isLogin}
-                  label="Create Account"
-                  onPress={() => switchMode("register")}
-                />
-              </View>
+                  className="mb-5 flex-row items-center gap-2"
+                >
+                  <MaterialIcons name="arrow-back" size={18} color="#2563eb" />
+                  <Text className="text-[13px] text-[#2563eb]">Back to sign in</Text>
+                </Pressable>
+              )}
 
               {error ? <Banner kind="error" message={error} /> : null}
 
-              {!isApiConfigured ? (
+              {!isApiConfigured && isAuthFlow ? (
                 <Banner
                   kind="info"
                   message="Add EXPO_PUBLIC_API_URL in app/.env before testing auth."
+                />
+              ) : null}
+
+              {isForgotPassword && forgotPasswordError ? (
+                <Banner kind="error" message={forgotPasswordError} />
+              ) : null}
+              {isForgotPassword && forgotPasswordSuccess ? (
+                <Banner
+                  kind="success"
+                  message="Password reset email sent. Check your inbox."
+                />
+              ) : null}
+
+              {isResetPassword && resetPasswordError ? (
+                <Banner kind="error" message={resetPasswordError} />
+              ) : null}
+              {isResetPassword && resetPasswordSuccess ? (
+                <Banner
+                  kind="success"
+                  message="Password reset successfully. Signing you in..."
                 />
               ) : null}
 
@@ -139,11 +200,12 @@ export const AuthPage = () => {
                   rememberMe={rememberMe}
                   showPassword={showLoginPassword}
                   onChangeForm={setLoginForm}
+                  onForgotPassword={() => switchMode("forgotPassword")}
                   onSubmit={submitLogin}
                   onToggleRememberMe={toggleRememberMe}
                   onTogglePasswordVisibility={toggleShowLoginPassword}
                 />
-              ) : (
+              ) : mode === "register" ? (
                 <SignUpPage
                   form={registerForm}
                   isBusy={isBusy}
@@ -158,41 +220,61 @@ export const AuthPage = () => {
                   onTogglePasswordVisibility={toggleShowRegisterPassword}
                   onToggleTerms={toggleRegisterTerms}
                 />
+              ) : isForgotPassword ? (
+                <ForgotPasswordPage
+                  form={forgotPasswordForm}
+                  isBusy={isBusy}
+                  onChangeForm={setForgotPasswordForm}
+                  onSubmit={submitForgotPassword}
+                />
+              ) : (
+                <ResetPasswordPage
+                  form={resetPasswordForm}
+                  isBusy={isBusy}
+                  showPassword={showResetPassword}
+                  showConfirmPassword={showResetConfirmPassword}
+                  onChangeForm={setResetPasswordForm}
+                  onSubmit={submitResetPassword}
+                  onTogglePasswordVisibility={toggleShowResetPassword}
+                  onToggleConfirmPasswordVisibility={toggleShowResetConfirmPassword}
+                />
               )}
 
-              <View className="pt-4">
-                <View className="flex-row items-center gap-3">
-                  <View className="h-px flex-1 bg-black/10" />
-                  <Text className="text-[11px] font-semibold uppercase tracking-[1.6px] text-black/35">
-                    Or continue with
-                  </Text>
-                  <View className="h-px flex-1 bg-black/10" />
-                </View>
+              {isAuthFlow ? (
+                <View className="pt-4">
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-px flex-1 bg-black/10" />
+                    <Text className="text-[11px] font-semibold uppercase tracking-[1.6px] text-black/35">
+                      Or continue with
+                    </Text>
+                    <View className="h-px flex-1 bg-black/10" />
+                  </View>
 
-                <Pressable
-                  onPress={submitGoogle}
-                  disabled={isBusy || !isApiConfigured}
-                  className={`mt-4 flex-row items-center justify-center gap-3 rounded-[16px] border border-[#d1d5db] bg-white py-[15px] ${
-                    isBusy || !isApiConfigured ? "opacity-50" : ""
-                  }`}
-                >
-                  <AntDesign name="google" size={18} color="#4285F4" />
-                  <Text className="text-[14px] font-semibold text-[#374151]">
-                    {isLogin ? "Sign in with Google" : "Sign up with Google"}
-                  </Text>
-                </Pressable>
-
-                <View className="mt-6 flex-row items-center justify-center gap-1">
-                  <Text className="text-[13px] text-[#4b5563]">
-                    {isLogin ? "Need an account?" : "Already registered?"}
-                  </Text>
-                  <Pressable onPress={toggleFooterMode}>
-                    <Text className="text-[13px] font-bold text-black">
-                      {isLogin ? "Create one" : "Sign in"}
+                  <Pressable
+                    onPress={submitGoogle}
+                    disabled={isBusy || !isApiConfigured}
+                    className={`mt-4 flex-row items-center justify-center gap-3 rounded-[16px] border border-[#d1d5db] bg-white py-[15px] ${
+                      isBusy || !isApiConfigured ? "opacity-50" : ""
+                    }`}
+                  >
+                    <AntDesign name="google" size={18} color="#4285F4" />
+                    <Text className="text-[14px] font-semibold text-[#374151]">
+                      {isLogin ? "Sign in with Google" : "Sign up with Google"}
                     </Text>
                   </Pressable>
+
+                  <View className="mt-6 flex-row items-center justify-center gap-1">
+                    <Text className="text-[13px] text-[#4b5563]">
+                      {isLogin ? "Need an account?" : "Already registered?"}
+                    </Text>
+                    <Pressable onPress={toggleFooterMode}>
+                      <Text className="text-[13px] font-bold text-black">
+                        {isLogin ? "Create one" : "Sign in"}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
+              ) : null}
             </View>
           </View>
         </ScrollView>
@@ -205,24 +287,38 @@ const Banner = ({
   kind,
   message,
 }: {
-  kind: "error" | "info";
+  kind: "error" | "info" | "success";
   message: string;
 }) => (
   <View
     className={`mb-4 flex-row items-start gap-3 rounded-[20px] px-4 py-3 ${
       kind === "error"
         ? "border border-red-200 bg-red-50"
+        : kind === "success"
+        ? "border border-green-200 bg-green-50"
         : "border border-blue-200 bg-blue-50"
     }`}
   >
     <MaterialIcons
-      name={kind === "error" ? "error-outline" : "info-outline"}
+      name={
+        kind === "error"
+          ? "error-outline"
+          : kind === "success"
+          ? "check-circle-outline"
+          : "info-outline"
+      }
       size={18}
-      color={kind === "error" ? "#dc2626" : "#2563eb"}
+      color={
+        kind === "error" ? "#dc2626" : kind === "success" ? "#16a34a" : "#2563eb"
+      }
     />
     <Text
       className={`flex-1 text-[13px] leading-[18px] ${
-        kind === "error" ? "text-red-600" : "text-blue-700"
+        kind === "error"
+          ? "text-red-600"
+          : kind === "success"
+          ? "text-green-700"
+          : "text-blue-700"
       }`}
     >
       {message}

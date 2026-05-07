@@ -2,58 +2,37 @@ import { MaterialIcons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
-export type LoginForm = {
-  username: string;
+export type ResetPasswordForm = {
   password: string;
+  confirmPassword: string;
 };
 
-type SignInPageProps = {
-  form: LoginForm;
+type ResetPasswordPageProps = {
+  form: ResetPasswordForm;
   isBusy: boolean;
-  isDisabled: boolean;
-  rememberMe: boolean;
   showPassword: boolean;
-  onChangeForm: (updater: (current: LoginForm) => LoginForm) => void;
-  onForgotPassword?: () => void;
+  showConfirmPassword: boolean;
+  onChangeForm: (updater: (current: ResetPasswordForm) => ResetPasswordForm) => void;
   onSubmit: () => void;
-  onToggleRememberMe: () => void;
   onTogglePasswordVisibility: () => void;
+  onToggleConfirmPasswordVisibility: () => void;
 };
 
-export const SignInPage = ({
+export const ResetPasswordPage = ({
   form,
   isBusy,
-  isDisabled,
-  rememberMe,
   showPassword,
+  showConfirmPassword,
   onChangeForm,
-  onForgotPassword,
   onSubmit,
-  onToggleRememberMe,
   onTogglePasswordVisibility,
-}: SignInPageProps) => (
+  onToggleConfirmPasswordVisibility,
+}: ResetPasswordPageProps) => (
   <View>
-    <View className="mb-5">
-      <Text className="text-[28px] font-bold text-[#1f2937]">Welcome Back!</Text>
-      <Text className="mt-2 text-[14px] leading-[20px] text-[#6b7280]">
-        Ready to take control of your business? Sign in to continue.
-      </Text>
-    </View>
-
-    <Field
-      icon="person"
-      label="Username"
-      placeholder="Enter your username"
-      value={form.username}
-      onChangeText={(value) =>
-        onChangeForm((current) => ({ ...current, username: value }))
-      }
-    />
-
     <Field
       icon="lock"
-      label="Password"
-      placeholder="Enter your password"
+      label="New Password"
+      placeholder="Enter new password"
       secureTextEntry={!showPassword}
       trailing={
         <Pressable onPress={onTogglePasswordVisibility} hitSlop={10}>
@@ -70,36 +49,32 @@ export const SignInPage = ({
       }
     />
 
-    <View className="mb-6 mt-1 flex-row items-center justify-between">
-      <Pressable onPress={onToggleRememberMe} className="flex-row items-center gap-3">
-        <View
-          className={`h-5 w-5 items-center justify-center rounded-md border ${
-            rememberMe ? "border-black bg-black" : "border-black/15 bg-white"
-          }`}
-        >
-          {rememberMe ? (
-            <MaterialIcons name="check" size={13} color="#ffffff" />
-          ) : null}
-        </View>
-        <Text className="text-[13px] text-[#374151]">Remember me</Text>
-      </Pressable>
-      {onForgotPassword ? (
-        <Pressable onPress={onForgotPassword}>
-          <Text className="text-[13px] font-semibold text-[#2563eb]">
-            Forgot password?
-          </Text>
+    <Field
+      icon="lock"
+      label="Confirm Password"
+      placeholder="Confirm new password"
+      secureTextEntry={!showConfirmPassword}
+      trailing={
+        <Pressable onPress={onToggleConfirmPasswordVisibility} hitSlop={10}>
+          <MaterialIcons
+            name={showConfirmPassword ? "visibility" : "visibility-off"}
+            size={20}
+            color="#9ca3af"
+          />
         </Pressable>
-      ) : null}
-    </View>
+      }
+      value={form.confirmPassword}
+      onChangeText={(value) =>
+        onChangeForm((current) => ({ ...current, confirmPassword: value }))
+      }
+    />
 
     <Pressable
       onPress={onSubmit}
-      disabled={isBusy || isDisabled}
-      className={`items-center justify-center rounded-[16px] bg-black py-4 ${
-        isBusy || isDisabled ? "opacity-50" : ""
-      }`}
+      disabled={isBusy}
+      className={`items-center justify-center rounded-[16px] bg-black py-4 ${isBusy ? "opacity-50" : ""}`}
       style={
-        isBusy || isDisabled
+        isBusy
           ? undefined
           : {
               shadowColor: "#000000",
@@ -111,7 +86,7 @@ export const SignInPage = ({
       }
     >
       <Text className="text-[15px] font-bold text-white">
-        {isBusy ? "Signing in..." : "Sign In"}
+        {isBusy ? "Resetting..." : "Reset password"}
       </Text>
     </Pressable>
   </View>

@@ -462,3 +462,20 @@ export const deleteCustomer = (accessToken: string, customerId: string) =>
       Authorization: `Bearer ${accessToken}`,
     },
   });
+
+export const forgotPassword = (email: string) =>
+  request<{ message: string }>("/auth/password/forgot", {
+    method: "POST",
+    body: { email },
+    headers: mobileHeaders,
+  });
+
+export const resetPassword = (payload: {
+  password: string;
+  verificationCode: string;
+}) =>
+  request<{ message: string }>("/auth/password/reset", {
+    method: "POST",
+    body: payload,
+    headers: mobileHeaders,
+  });
