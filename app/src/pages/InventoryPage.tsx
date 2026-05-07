@@ -95,7 +95,7 @@ export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps)
     ? Math.round(((summary.totalProducts - summary.lowStockCount - summary.outOfStockCount) / summary.totalProducts) * 100)
     : 100;
 
-  const ListHeader = () => (
+  const listHeader = (
     <>
       {/* ─── Hero Card ─── */}
       <Animated.View entering={FadeInDown.duration(400).delay(0)}>
@@ -197,36 +197,32 @@ export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps)
     </>
   );
 
-  const ListEmpty = () => {
-    if (isLoading) return (
-      <View className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
-        {Array.from({ length: 5 }).map((_, i) => <SkeletonProductRow key={i} />)}
+  const listEmpty = isLoading ? (
+    <View className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
+      {Array.from({ length: 5 }).map((_, i) => <SkeletonProductRow key={i} />)}
+    </View>
+  ) : error ? (
+    <View className="bg-white rounded-2xl border border-zinc-100 items-center px-5 py-14">
+      <View className="h-12 w-12 rounded-full bg-red-50 items-center justify-center mb-3">
+        <MaterialIcons name="error-outline" size={24} color="#ef4444" />
       </View>
-    );
-    if (error) return (
-      <View className="bg-white rounded-2xl border border-zinc-100 items-center px-5 py-14">
-        <View className="h-12 w-12 rounded-full bg-red-50 items-center justify-center mb-3">
-          <MaterialIcons name="error-outline" size={24} color="#ef4444" />
-        </View>
-        <Text className="text-slate-900 font-semibold text-[14px]">Something went wrong</Text>
-        <Text className="text-slate-400 text-[12px] mt-1 text-center">{error}</Text>
-        <Pressable onPress={refetch} className="mt-4 px-5 py-2.5 bg-slate-900 rounded-xl">
-          <Text className="text-white text-[12px] font-semibold">Try Again</Text>
-        </Pressable>
+      <Text className="text-slate-900 font-semibold text-[14px]">Something went wrong</Text>
+      <Text className="text-slate-400 text-[12px] mt-1 text-center">{error}</Text>
+      <Pressable onPress={refetch} className="mt-4 px-5 py-2.5 bg-slate-900 rounded-xl">
+        <Text className="text-white text-[12px] font-semibold">Try Again</Text>
+      </Pressable>
+    </View>
+  ) : (
+    <View className="bg-white rounded-2xl border border-zinc-100 items-center px-5 py-14">
+      <View className="h-14 w-14 rounded-2xl bg-slate-50 items-center justify-center mb-3">
+        <MaterialIcons name="inventory-2" size={24} color="#94A3B8" />
       </View>
-    );
-    return (
-      <View className="bg-white rounded-2xl border border-zinc-100 items-center px-5 py-14">
-        <View className="h-14 w-14 rounded-2xl bg-slate-50 items-center justify-center mb-3">
-          <MaterialIcons name="inventory-2" size={24} color="#94A3B8" />
-        </View>
-        <Text className="text-slate-700 font-semibold text-[14px]">No products found</Text>
-        <Text className="text-slate-400 text-[12px] mt-1">Adjust your search or filters</Text>
-      </View>
-    );
-  };
+      <Text className="text-slate-700 font-semibold text-[14px]">No products found</Text>
+      <Text className="text-slate-400 text-[12px] mt-1">Adjust your search or filters</Text>
+    </View>
+  );
 
-  const ListFooter = () => (
+  const listFooter = (
     <View className="mt-1">
       {!isLoading && !error && pagination.totalPages > 1 && (
         <View className="flex-row items-center justify-between py-4">
@@ -322,9 +318,9 @@ export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps)
         data={isLoading ? [] : products}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListHeaderComponent={<ListHeader />}
-        ListEmptyComponent={<ListEmpty />}
-        ListFooterComponent={<ListFooter />}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        ListFooterComponent={listFooter}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refetch} />}
         contentContainerClassName="px-4 pb-32 pt-2"
         showsVerticalScrollIndicator={false}

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchSales } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
@@ -41,6 +41,7 @@ export const useSalesData = ({
       hasReminder,
     }),
     enabled: Boolean(accessToken),
+    placeholderData: keepPreviousData,
     queryFn: () =>
       fetchSales(accessToken!, {
         page,
@@ -58,7 +59,7 @@ export const useSalesData = ({
         : null
       : "Session expired. Please sign in again.",
     isLoading: query.isPending,
-    isRefreshing: query.isRefetching && !query.isPending,
+    isRefreshing: query.isRefetching && !query.isPending && !query.isPlaceholderData,
     pagination: query.data?.pagination ?? {
       page,
       limit,

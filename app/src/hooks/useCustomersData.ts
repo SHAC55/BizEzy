@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchCustomers } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
@@ -46,6 +46,7 @@ export const useCustomersData = ({
       includeArchived,
     }),
     enabled: Boolean(accessToken),
+    placeholderData: keepPreviousData,
     queryFn: () =>
       fetchCustomers(accessToken!, {
         page,
@@ -67,7 +68,7 @@ export const useCustomersData = ({
         : null
       : "Session expired. Please sign in again.",
     isLoading: query.isPending,
-    isRefreshing: query.isRefetching && !query.isPending,
+    isRefreshing: query.isRefetching && !query.isPending && !query.isPlaceholderData,
     pagination: query.data?.pagination ?? {
       page,
       limit,

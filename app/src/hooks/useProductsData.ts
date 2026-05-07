@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { createProduct, fetchProducts } from "../lib/api";
 import { queryClient, queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
@@ -43,6 +43,7 @@ export const useProductsData = ({
       lowStockOnly,
     }),
     enabled: Boolean(accessToken),
+    placeholderData: keepPreviousData,
     queryFn: () =>
       fetchProducts(accessToken!, {
         page,
@@ -60,7 +61,7 @@ export const useProductsData = ({
         : null
       : "Session expired. Please sign in again.",
     isLoading: query.isPending,
-    isRefreshing: query.isRefetching && !query.isPending,
+    isRefreshing: query.isRefetching && !query.isPending && !query.isPlaceholderData,
     pagination: query.data?.pagination ?? {
       page,
       limit,
