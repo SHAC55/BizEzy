@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import {
   Alert,
@@ -9,7 +9,7 @@ import {
   Text,
   TextInput,
   View,
-  Linking,
+
 } from "react-native";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
@@ -89,28 +89,6 @@ export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps)
     ]);
   };
 
-  const handleShareLowStock = async () => {
-    const token = session?.tokens.accessToken;
-    if (!token) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      const data = await fetchProducts(token, { page: 1, limit: 100, lowStockOnly: true });
-      if (data.products.length === 0) {
-        Toast.show({ type: "info", text1: "No Low Stock", text2: "All products are stocked." });
-        return;
-      }
-      const list = data.products.map(p => `- ${p.name} (Left: ${p.quantity}, Min: ${p.minimumQuantity})`).join("\n");
-      const msg = `🚨 *Low Stock Alert*\n\nThe following products need restocking:\n\n${list}\n\nPlease restock soon.`;
-      const digits = session?.user?.mobile?.replace(/\D/g, "");
-      const phone = digits?.startsWith("91") && digits.length >= 12 ? digits : (digits ? `91${digits}` : null);
-      const url = phone
-        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-        : `whatsapp://send?text=${encodeURIComponent(msg)}`;
-      await Linking.openURL(url);
-    } catch (err) {
-      Toast.show({ type: "error", text1: "Failed", text2: err instanceof Error ? err.message : "" });
-    }
-  };
 
   // Stock health percentage
   const healthPct = summary.totalProducts > 0
@@ -182,25 +160,9 @@ export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps)
         </Animated.View>
       )}
 
-      {/* ─── WhatsApp Alert ─── */}
-      {summary.lowStockCount > 0 && (
-        <Animated.View entering={FadeInDown.duration(400).delay(160)}>
-          <Pressable
-            onPress={handleShareLowStock}
-            android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: false }}
-            className="flex-row items-center justify-center gap-2.5 rounded-2xl px-4 py-3.5 mb-4"
-            style={{ backgroundColor: "#25D366", shadowColor: "#25D366", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }}
-          >
-            <FontAwesome5 name="whatsapp" size={17} color="#fff" />
-            <Text className="text-white font-bold text-[13px]">
-              Send Restock Alert · {summary.lowStockCount} items
-            </Text>
-          </Pressable>
-        </Animated.View>
-      )}
 
       {/* ─── Search & Filters ─── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(240)}>
+      <Animated.View entering={FadeInDown.duration(400).delay(160)}>
         <View className="bg-white rounded-2xl border border-zinc-100 p-4 mb-4" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
           <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 gap-2 mb-3">
             <MaterialIcons name="search" size={17} color="#94A3B8" />

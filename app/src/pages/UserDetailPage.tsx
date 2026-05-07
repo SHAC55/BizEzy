@@ -2,6 +2,7 @@ import { useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -71,11 +72,11 @@ export const UserDetailPage = ({ onBack, onNavigate }: UserDetailPageProps) => {
   const user = session?.user;
   const business = user?.business as
     | {
-        name?: string;
-        gstNumber?: string;
-        address?: string;
-        type?: string;
-      }
+      name?: string;
+      gstNumber?: string;
+      address?: string;
+      type?: string;
+    }
     | undefined;
 
   const avatarColor = getAvatarColor(user?.name ?? "U");
@@ -452,16 +453,7 @@ export const UserDetailPage = ({ onBack, onNavigate }: UserDetailPageProps) => {
                 iconColor="#F59E0B"
                 onPress={() => {
                   onNavigate("reminders" as AppRoute);
-                  // Use navigation directly if needed
                 }}
-                showBorder
-              />
-              <QuickActionRow
-                icon="security"
-                label="Account Security"
-                description="Manage your password"
-                iconBg="#EEF2FF"
-                iconColor="#6366F1"
                 showBorder
               />
               <QuickActionRow
@@ -470,6 +462,7 @@ export const UserDetailPage = ({ onBack, onNavigate }: UserDetailPageProps) => {
                 description="Get assistance with your account"
                 iconBg="#F0FDF4"
                 iconColor="#10B981"
+                onPress={() => Linking.openURL("https://bizezy.in")}
                 showBorder
               />
               <QuickActionRow
@@ -581,9 +574,8 @@ const DisplayRow = ({
   highlight?: boolean;
 }) => (
   <View
-    className={`flex-row items-center gap-3 rounded-xl px-4 py-3.5 ${
-      highlight ? "bg-amber-50 border border-amber-100" : "bg-zinc-50"
-    }`}
+    className={`flex-row items-center gap-3 rounded-xl px-4 py-3.5 ${highlight ? "bg-amber-50 border border-amber-100" : "bg-zinc-50"
+      }`}
   >
     <MaterialIcons
       name={icon}
@@ -595,13 +587,12 @@ const DisplayRow = ({
         {label}
       </Text>
       <Text
-        className={`text-[14px] font-medium mt-0.5 ${
-          highlight
-            ? "text-amber-600 italic"
-            : value === "-"
+        className={`text-[14px] font-medium mt-0.5 ${highlight
+          ? "text-amber-600 italic"
+          : value === "-"
             ? "text-zinc-300"
             : "text-zinc-800"
-        }`}
+          }`}
       >
         {highlight ? "Not set — tap Edit to add" : value}
       </Text>
@@ -640,9 +631,8 @@ const EditField = ({
       {label}
     </Text>
     <View
-      className={`flex-row items-center bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 ${
-        multiline ? "items-start" : ""
-      }`}
+      className={`flex-row items-center bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 ${multiline ? "items-start" : ""
+        }`}
     >
       <MaterialIcons
         name={icon}
@@ -660,9 +650,8 @@ const EditField = ({
         multiline={multiline}
         numberOfLines={multiline ? 3 : 1}
         textAlignVertical={multiline ? "top" : "center"}
-        className={`flex-1 text-[14px] text-zinc-800 ml-2.5 ${
-          multiline ? "py-3 min-h-[80px]" : "py-3.5"
-        }`}
+        className={`flex-1 text-[14px] text-zinc-800 ml-2.5 ${multiline ? "py-3 min-h-[80px]" : "py-3.5"
+          }`}
       />
     </View>
   </View>
@@ -692,9 +681,8 @@ const ActionButtons = ({
       onPress={onSave}
       disabled={isSaving}
       android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
-      className={`flex-1 py-3.5 rounded-xl items-center justify-center flex-row gap-2 ${
-        isSaving ? "bg-zinc-300" : "bg-slate-900"
-      }`}
+      className={`flex-1 py-3.5 rounded-xl items-center justify-center flex-row gap-2 ${isSaving ? "bg-zinc-300" : "bg-slate-900"
+        }`}
     >
       {isSaving ? (
         <ActivityIndicator size={14} color="#fff" />
@@ -730,9 +718,8 @@ const QuickActionRow = ({
   <Pressable
     onPress={onPress}
     android_ripple={{ color: "rgba(0,0,0,0.04)", borderless: false }}
-    className={`flex-row items-center gap-3.5 px-4 py-3.5 active:bg-zinc-50 ${
-      showBorder ? "border-b border-zinc-50" : ""
-    }`}
+    className={`flex-row items-center gap-3.5 px-4 py-3.5 active:bg-zinc-50 ${showBorder ? "border-b border-zinc-50" : ""
+      }`}
   >
     <View
       className="h-10 w-10 rounded-xl items-center justify-center"
