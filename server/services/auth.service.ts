@@ -338,7 +338,7 @@ export const sendPasswordResetEmail = async (email: string) => {
       expiresAt,
     },
   });
-  const url = `/${APP_ORIGIN}/password/reset?code=${verificationCode.id}&exp=${expiresAt.getTime()}`;
+  const url = `${APP_ORIGIN}/password/reset?code=${verificationCode.id}&exp=${expiresAt.getTime()}`;
   appAssert(user.email, NOT_FOUND, "please check your email");
 
   await sendMail({
