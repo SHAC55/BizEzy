@@ -12,6 +12,11 @@ import businessRoutes from "./routes/business.route";
 import customerRoutes from "./routes/customer.route";
 import saleRoutes from "./routes/sale.route";
 const app = express();
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(

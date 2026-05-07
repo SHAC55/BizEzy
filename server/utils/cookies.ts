@@ -1,12 +1,15 @@
 import type { CookieOptions, Response } from "express";
 import { fifteenMinutesFromNow, thirtyDaysFromNow } from "./date";
+import { NODE_ENV } from "../constants/env";
 
 export const REFRESH_PATH = "/auth/refresh";
 
+const isProd = NODE_ENV === "production";
+
 const defaults: CookieOptions = {
-  sameSite: "strict",
+  sameSite: isProd ? "none" : "lax",
   httpOnly: true,
-  secure: false,
+  secure: isProd,
 };
 
 export const getAccessTokenCookieOptions = (): CookieOptions => ({
@@ -28,10 +31,10 @@ type params = {
 
 export const setAuthCookies = ({ res, accessToken, refreshToken }: params) =>
   res
-    .cookie("accessToken", accessToken, getAccessTokenCookieOptions())    // ?? fixed
-    .cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions()); // ?? fixed
+    .cookie("accessToken", accessToken, getAccessTokenCookieOptions())
+    .cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
 
 export const clearAuthCookies = (res: Response) =>
   res
-    .clearCookie("accessToken")                                            // ?? fixed
-    .clearCookie("refreshToken", { path: REFRESH_PATH });                  // ?? fixed
+    .clearCookie("accessToken", { ...defaults })
+    .clearCookie("refreshToken", { ...defaults, path: REFRESH_PATH });
