@@ -212,7 +212,7 @@ const HeroSection = () => {
 
           {/* Store badges */}
           <div className="flex items-center gap-3 flex-wrap">
-            <StoreBadge eyebrow="Available on" name="App Store" icon={<AppleIcon />} />
+            {/* <StoreBadge eyebrow="Available on" name="App Store" icon={<AppleIcon />} /> */}
             <StoreBadge eyebrow="Get it on" name="Play Store" icon={<PlayIcon />} />
           </div>
         </div>

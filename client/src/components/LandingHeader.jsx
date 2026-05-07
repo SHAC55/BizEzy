@@ -54,12 +54,12 @@ const LandingHeader = () => {
 
         {/* Desktop Buttons */}
         <div className="hidden md:flex items-center gap-2">
-          {/* <NavLink
+          <NavLink
             to="/signin"
             className="px-4 py-2 text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all duration-200"
           >
             Sign In
-          </NavLink> */}
+          </NavLink>
           <NavLink
             to="/signup"
             className="px-4 py-2 bg-zinc-900 text-white text-[13px] font-semibold rounded-lg hover:bg-zinc-700 transition-all duration-200 active:scale-95"

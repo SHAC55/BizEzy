@@ -132,13 +132,13 @@ const CTA = () => {
             {/* Store badges */}
             <div className="flex items-center justify-center gap-3 flex-wrap">
               {/* App Store */}
-              <div className="flex items-center gap-3 bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.09] hover:border-white/[0.22] rounded-[14px] px-5 py-3 transition-all cursor-pointer min-w-[160px]">
+              {/* <div className="flex items-center gap-3 bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.09] hover:border-white/[0.22] rounded-[14px] px-5 py-3 transition-all cursor-pointer min-w-[160px]">
                 <AppleIcon />
                 <div className="text-left leading-none">
                   <div className="text-[9px] text-white uppercase tracking-[0.06em] mb-1">Download on the</div>
                   <div className="text-[14px] font-semibold text-white tracking-tight">App Store</div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Play Store */}
               <div className="flex items-center gap-3 bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.09] hover:border-white/[0.22] rounded-[14px] px-5 py-3 transition-all cursor-pointer min-w-[160px]">
