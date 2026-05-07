@@ -11,7 +11,7 @@ import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 import Animated, { FadeInDown, FadeIn, FadeOut, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
-import { createSale, fetchCustomers, fetchProducts } from "../lib/api";
+import { createCustomer, createSale, fetchCustomers, fetchProducts } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
 import type { Customer } from "../types/customer";
@@ -248,6 +248,10 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading]               = useState(false);
   const [saveStage, setSaveStage]           = useState<SaveStage>("validating");
+  const [showQuickAdd, setShowQuickAdd]     = useState(false);
+  const [newCustomerName, setNewCustomerName]     = useState("");
+  const [newCustomerMobile, setNewCustomerMobile] = useState("");
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -293,6 +297,60 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
     setItems(copy);
   };
   const removeItem = (i: number) => { if (items.length === 1) return; setItems(items.filter((_, j) => j !== i)); };
+
+  const openQuickAdd = (prefillName = "") => {
+    setNewCustomerName(prefillName);
+    setNewCustomerMobile("");
+    setShowQuickAdd(true);
+  };
+
+  const closeQuickAdd = () => {
+    setShowQuickAdd(false);
+    setNewCustomerName("");
+    setNewCustomerMobile("");
+  };
+
+  const handleQuickAddCustomer = async () => {
+    const token = session?.tokens.accessToken;
+    if (!token || !newCustomerName.trim() || !newCustomerMobile.trim()) {
+      Toast.show({ type: "error", text1: "Missing Fields", text2: "Name and mobile number are required." });
+      return;
+    }
+    setIsCreatingCustomer(true);
+    try {
+      const created = await createCustomer(token, {
+        name: newCustomerName.trim(),
+        mobile: newCustomerMobile.trim(),
+      });
+      const newCustomer: Customer = {
+        id: created.id,
+        name: newCustomerName.trim(),
+        mobile: newCustomerMobile.trim(),
+        businessId: "",
+        email: null,
+        address: null,
+        notes: null,
+        openingBalance: 0,
+        archivedAt: null,
+        createdAt: new Date().toISOString(),
+        orders: 0,
+        totalInvoiced: 0,
+        totalPayment: 0,
+        due: 0,
+      };
+      setCustomers((prev) => [newCustomer, ...prev]);
+      setCustomerId(created.id);
+      setCustomerSearch("");
+      closeQuickAdd();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({ type: "success", text1: "Customer Added", text2: `${newCustomer.name} added and selected.` });
+    } catch (err) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Toast.show({ type: "error", text1: "Failed to add customer", text2: err instanceof Error ? err.message : "" });
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  };
 
   const handleSubmit = async () => {
     const token = session?.tokens.accessToken;
@@ -394,18 +452,115 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
                 <>
                   <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 gap-2 mb-3">
                     <MaterialIcons name="search" size={17} color="#94A3B8" />
-                    <TextInput value={customerSearch} onChangeText={setCustomerSearch} placeholder="Search by name or mobile…" placeholderTextColor="#CBD5E1" className="flex-1 text-[14px] text-slate-900" />
+                    <TextInput
+                      value={customerSearch}
+                      onChangeText={(v) => { setCustomerSearch(v); setShowQuickAdd(false); }}
+                      placeholder="Search by name or mobile…"
+                      placeholderTextColor="#CBD5E1"
+                      className="flex-1 text-[14px] text-slate-900"
+                    />
+                    {customerSearch.length > 0 && (
+                      <Pressable onPress={() => { setCustomerSearch(""); setShowQuickAdd(false); }}>
+                        <MaterialIcons name="cancel" size={17} color="#CBD5E1" />
+                      </Pressable>
+                    )}
                   </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View className="flex-row gap-2">
-                      {filteredCustomers.slice(0, 20).map((c) => (
-                        <Pressable key={c.id} onPress={() => setCustomerId(c.id)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 items-center">
-                          <Text className="text-[13px] font-semibold text-slate-700">{c.name}</Text>
-                          <Text className="text-[10px] text-slate-400 mt-0.5">{c.mobile}</Text>
+
+                  {/* Results */}
+                  {filteredCustomers.length > 0 ? (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View className="flex-row gap-2">
+                        {filteredCustomers.slice(0, 20).map((c) => (
+                          <Pressable key={c.id} onPress={() => { setCustomerId(c.id); setCustomerSearch(""); setShowQuickAdd(false); }} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 items-center">
+                            <Text className="text-[13px] font-semibold text-slate-700">{c.name}</Text>
+                            <Text className="text-[10px] text-slate-400 mt-0.5">{c.mobile}</Text>
+                          </Pressable>
+                        ))}
+                        {/* + New Customer chip at end of list */}
+                        <Pressable
+                          onPress={() => openQuickAdd(customerSearch.trim())}
+                          className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 items-center justify-center flex-row gap-1.5"
+                        >
+                          <MaterialIcons name="person-add" size={13} color="#6366F1" />
+                          <Text className="text-[13px] font-semibold text-indigo-600">New</Text>
                         </Pressable>
-                      ))}
-                    </View>
-                  </ScrollView>
+                      </View>
+                    </ScrollView>
+                  ) : customerSearch.trim().length > 0 ? (
+                    /* No results state */
+                    <Pressable
+                      onPress={() => openQuickAdd(customerSearch.trim())}
+                      className="flex-row items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3.5"
+                    >
+                      <View className="h-9 w-9 rounded-xl bg-indigo-100 items-center justify-center">
+                        <MaterialIcons name="person-add" size={18} color="#6366F1" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-[13px] font-semibold text-indigo-700">No customer found</Text>
+                        <Text className="text-[11px] text-indigo-400 mt-0.5">Tap to add "{customerSearch.trim()}" as a new customer</Text>
+                      </View>
+                      <MaterialIcons name="chevron-right" size={18} color="#6366F1" />
+                    </Pressable>
+                  ) : null}
+
+                  {/* Quick Add inline form */}
+                  {showQuickAdd && (
+                    <Animated.View entering={FadeInDown.duration(250)} className="mt-3 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+                      <View className="flex-row items-center justify-between mb-3">
+                        <View className="flex-row items-center gap-2">
+                          <MaterialIcons name="person-add" size={15} color="#6366F1" />
+                          <Text className="text-[13px] font-bold text-indigo-700">Add New Customer</Text>
+                        </View>
+                        <Pressable onPress={closeQuickAdd} hitSlop={8}>
+                          <MaterialIcons name="close" size={17} color="#94A3B8" />
+                        </Pressable>
+                      </View>
+
+                      <View className="flex-row items-center bg-white border border-indigo-100 rounded-xl px-3.5 py-3 gap-2 mb-2">
+                        <MaterialIcons name="person" size={15} color="#94A3B8" />
+                        <TextInput
+                          value={newCustomerName}
+                          onChangeText={setNewCustomerName}
+                          placeholder="Customer name"
+                          placeholderTextColor="#CBD5E1"
+                          className="flex-1 text-[14px] text-slate-900"
+                        />
+                      </View>
+
+                      <View className="flex-row items-center bg-white border border-indigo-100 rounded-xl px-3.5 py-3 gap-2 mb-3">
+                        <MaterialIcons name="phone" size={15} color="#94A3B8" />
+                        <TextInput
+                          value={newCustomerMobile}
+                          onChangeText={setNewCustomerMobile}
+                          placeholder="Mobile number"
+                          placeholderTextColor="#CBD5E1"
+                          keyboardType="phone-pad"
+                          className="flex-1 text-[14px] text-slate-900"
+                        />
+                      </View>
+
+                      <Pressable
+                        onPress={handleQuickAddCustomer}
+                        disabled={isCreatingCustomer || !newCustomerName.trim() || !newCustomerMobile.trim()}
+                        className="flex-row items-center justify-center gap-2 rounded-xl py-3"
+                        style={{
+                          backgroundColor:
+                            isCreatingCustomer || !newCustomerName.trim() || !newCustomerMobile.trim()
+                              ? "#c7d2fe"
+                              : "#6366F1",
+                        }}
+                      >
+                        {isCreatingCustomer ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <MaterialIcons name="check" size={16} color="#fff" />
+                        )}
+                        <Text className="text-[13px] font-bold text-white">
+                          {isCreatingCustomer ? "Adding…" : "Create & Select"}
+                        </Text>
+                      </Pressable>
+                    </Animated.View>
+                  )}
                 </>
               )}
             </View>

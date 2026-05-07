@@ -381,19 +381,24 @@ export const fetchSale = (accessToken: string, saleId: string) =>
     },
   });
 
-export const createSalePayment = (
+export const createSalePayment = async (
   accessToken: string,
   saleId: string,
   amount: number,
-) =>
-  request<DashboardSale>(`/sales/${saleId}/payments`, {
-    method: "POST",
-    body: { amount },
-    headers: {
-      ...mobileHeaders,
-      Authorization: `Bearer ${accessToken}`,
+): Promise<DashboardSale> => {
+  const data = await request<{ message: string; sale: DashboardSale }>(
+    `/sales/${saleId}/payments`,
+    {
+      method: "POST",
+      body: { amount },
+      headers: {
+        ...mobileHeaders,
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+  );
+  return data.sale;
+};
 
 export type SaleReminder = {
   customerMobile: string;

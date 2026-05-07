@@ -76,6 +76,11 @@ export const SaleDetailPage = ({
   const handlePayment = async () => {
     const token = session?.tokens.accessToken;
     if (!token || !sale) return;
+    const amount = Number(paymentAmount);
+    if (!paymentAmount.trim() || isNaN(amount) || amount <= 0) {
+      Toast.show({ type: "error", text1: "Invalid Amount", text2: "Enter a valid positive amount." });
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsPaying(true);
     try {
@@ -373,9 +378,12 @@ export const SaleDetailPage = ({
                 onPress={handlePayment}
                 disabled={isPaying || !paymentAmount}
                 android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: false }}
-                className={`rounded-2xl py-4 items-center flex-row justify-center gap-2 ${
-                  isPaying || !paymentAmount ? "bg-zinc-200" : "bg-zinc-900"
-                }`}
+                className="rounded-2xl py-4 items-center flex-row justify-center gap-2"
+                style={({ pressed }) => ({
+                  backgroundColor: isPaying || !paymentAmount ? "#e4e4e7" : "#18181b",
+                  opacity: pressed && !isPaying && !!paymentAmount ? 0.75 : 1,
+                  transform: [{ scale: pressed && !isPaying && !!paymentAmount ? 0.97 : 1 }],
+                })}
               >
                 {isPaying ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -383,9 +391,8 @@ export const SaleDetailPage = ({
                   <MaterialIcons name="add-circle-outline" size={18} color={!paymentAmount ? "#a1a1aa" : "#fff"} />
                 )}
                 <Text
-                  className={`font-semibold text-[14px] ${
-                    isPaying || !paymentAmount ? "text-zinc-400" : "text-white"
-                  }`}
+                  className="font-semibold text-[14px]"
+                  style={{ color: isPaying || !paymentAmount ? "#a1a1aa" : "#ffffff" }}
                 >
                   {isPaying ? "Recording…" : "Add Payment"}
                 </Text>
