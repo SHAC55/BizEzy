@@ -8,10 +8,18 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useTheme } from "../providers/ThemeProvider";
 import { useAppLock } from "../providers/AppLockProvider";
 import { useAuth } from "../providers/AuthProvider";
@@ -63,14 +71,30 @@ const formatRelative = (iso: string) => {
   });
 };
 
-const deviceLabel = (userAgent: string | null) => {
-  if (!userAgent) return "Unknown device";
-  if (/iPhone|iPad|iOS/i.test(userAgent)) return "iOS device";
-  if (/Android/i.test(userAgent)) return "Android device";
-  if (/Macintosh|Mac OS X/i.test(userAgent)) return "Mac";
-  if (/Windows/i.test(userAgent)) return "Windows";
-  if (/Linux/i.test(userAgent)) return "Linux";
-  return userAgent.length > 60 ? `${userAgent.slice(0, 57)}…` : userAgent;
+const deviceMeta = (
+  userAgent: string | null,
+): {
+  label: string;
+  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  os: string;
+} => {
+  if (!userAgent)
+    return { label: "Unknown device", icon: "devices-other", os: "Unknown" };
+  if (/iPhone|iPad|iOS/i.test(userAgent))
+    return { label: "iOS device", icon: "phone-iphone", os: "iOS" };
+  if (/Android/i.test(userAgent))
+    return { label: "Android device", icon: "phone-android", os: "Android" };
+  if (/Macintosh|Mac OS X/i.test(userAgent))
+    return { label: "Mac", icon: "laptop-mac", os: "macOS" };
+  if (/Windows/i.test(userAgent))
+    return { label: "Windows", icon: "laptop-windows", os: "Windows" };
+  if (/Linux/i.test(userAgent))
+    return { label: "Linux", icon: "computer", os: "Linux" };
+  return {
+    label: userAgent.length > 60 ? `${userAgent.slice(0, 57)}…` : userAgent,
+    icon: "devices-other",
+    os: "Browser",
+  };
 };
 
 export const SettingsSecurityPage = ({
@@ -95,6 +119,18 @@ export const SettingsSecurityPage = ({
   const [revokingId, setRevokingId] = useState<number | null>(null);
 
   const strength = useMemo(() => passwordStrength(next), [next]);
+  const meterWidth = useSharedValue(0);
+
+  useEffect(() => {
+    meterWidth.value = withSpring((strength.score / 4) * 100, {
+      damping: 18,
+      stiffness: 200,
+    });
+  }, [strength.score, meterWidth]);
+
+  const meterStyle = useAnimatedStyle(() => ({
+    width: `${meterWidth.value}%`,
+  }));
 
   const loadSessions = async () => {
     if (!accessToken) return;
@@ -129,10 +165,7 @@ export const SettingsSecurityPage = ({
       return;
     }
     if (next !== confirm) {
-      Toast.show({
-        type: "error",
-        text1: "Passwords don't match",
-      });
+      Toast.show({ type: "error", text1: "Passwords don't match" });
       return;
     }
     setSubmitting(true);
@@ -151,7 +184,6 @@ export const SettingsSecurityPage = ({
       setCurrent("");
       setNext("");
       setConfirm("");
-      // Refresh sessions list since others were revoked server-side
       loadSessions();
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -179,11 +211,12 @@ export const SettingsSecurityPage = ({
 
   const handleRevoke = (s: SessionInfo) => {
     if (!accessToken) return;
+    const meta = deviceMeta(s.userAgent);
     Alert.alert(
       "Revoke session?",
       s.isCurrent
         ? "This is the device you're using right now. Revoking will sign you out."
-        : `Sign out from ${deviceLabel(s.userAgent)}?`,
+        : `Sign out from ${meta.label}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -217,15 +250,23 @@ export const SettingsSecurityPage = ({
   const passwordValid =
     current.length >= 6 && next.length >= 6 && next === confirm;
 
+  const lockSubtitle = !hardwareAvailable
+    ? "This device doesn't have biometric hardware."
+    : !enrolled
+      ? "Enroll Face ID, Touch ID or a passcode in your device settings to use App Lock."
+      : "Re-locks 30 seconds after you switch away from Bizezy.";
+
   return (
     <SettingsScreen
       title="Security"
+      eyebrow="Account"
       subtitle="Password, app lock and active devices"
       onBack={onBack}
     >
-      {/* Change password */}
+      {/* ── Password card ─────────────────────────────────────────── */}
       <Section
         label="Password"
+        delay={40}
         footnote="When you change your password, every other device is signed out."
       >
         <View style={{ padding: 16, gap: 12 }}>
@@ -246,33 +287,52 @@ export const SettingsSecurityPage = ({
             placeholder="At least 6 characters"
           />
           {next.length > 0 && (
-            <Animated.View entering={FadeInDown.duration(160)}>
+            <Animated.View entering={FadeIn.duration(160)}>
               <View
                 style={{
-                  height: 4,
+                  height: 5,
                   borderRadius: 999,
                   backgroundColor: colors.surfaceMuted,
                   overflow: "hidden",
                 }}
               >
-                <View
-                  style={{
-                    width: `${(strength.score / 4) * 100}%`,
-                    height: "100%",
-                    backgroundColor: strength.color,
-                  }}
-                />
+                <Animated.View
+                  style={[
+                    { height: "100%", borderRadius: 999 },
+                    meterStyle,
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[strength.color, `${strength.color}99`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ flex: 1, borderRadius: 999 }}
+                  />
+                </Animated.View>
               </View>
-              <Text
+              <View
                 style={{
-                  marginTop: 4,
-                  fontSize: 11,
-                  color: strength.color,
-                  fontWeight: "700",
+                  marginTop: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                {strength.label}
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: strength.color,
+                    fontWeight: "800",
+                    letterSpacing: 0.6,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {strength.label}
+                </Text>
+                <Text style={{ fontSize: 10, color: colors.textSubtle }}>
+                  Tip: mix letters, numbers, and a symbol
+                </Text>
+              </View>
             </Animated.View>
           )}
           <PasswordField
@@ -332,21 +392,12 @@ export const SettingsSecurityPage = ({
         </View>
       </Section>
 
-      {/* App lock */}
-      <Section
-        label="App lock"
-        footnote={
-          !hardwareAvailable
-            ? "This device doesn't have biometric hardware."
-            : !enrolled
-              ? "Enroll a fingerprint or Face ID in your device settings to use App Lock."
-              : "Re-locks 30 seconds after you switch away from Bizezy."
-        }
-      >
+      {/* ── App lock ──────────────────────────────────────────────── */}
+      <Section label="App lock" delay={100} footnote={lockSubtitle}>
         <Row
           icon="fingerprint"
-          iconBg="#F1F5F9"
-          iconColor={colors.text}
+          iconBg={lockEnabled ? "#ECFDF5" : "#F1F5F9"}
+          iconColor={lockEnabled ? "#10B981" : colors.text}
           label="Require biometrics on launch"
           description={
             hardwareAvailable && enrolled
@@ -365,9 +416,10 @@ export const SettingsSecurityPage = ({
         />
       </Section>
 
-      {/* Sessions */}
+      {/* ── Active sessions ───────────────────────────────────────── */}
       <Section
         label="Active sessions"
+        delay={160}
         footnote="Devices currently signed in to your account."
       >
         {loadingSessions ? (
@@ -381,30 +433,102 @@ export const SettingsSecurityPage = ({
             </Text>
           </View>
         ) : (
-          sessions.map((s, idx) => (
-            <View key={s.id}>
-              {idx > 0 ? <Divider /> : null}
-              <Row
-                icon={
-                  /iPhone|iPad|iOS/i.test(s.userAgent ?? "")
-                    ? "phone-iphone"
-                    : /Android/i.test(s.userAgent ?? "")
-                      ? "phone-android"
-                      : "computer"
-                }
-                iconBg={s.isCurrent ? "#ECFDF5" : colors.surfaceMuted}
-                iconColor={s.isCurrent ? "#10B981" : colors.text}
-                label={`${deviceLabel(s.userAgent)}${s.isCurrent ? " · This device" : ""}`}
-                description={`Signed in ${formatRelative(s.createdAt)}`}
-                rightSlot={
-                  revokingId === s.id ? (
+          sessions.map((s, idx) => {
+            const meta = deviceMeta(s.userAgent);
+            const isRevoking = revokingId === s.id;
+            return (
+              <Animated.View
+                key={s.id}
+                entering={FadeInDown.duration(280).delay(idx * 60)}
+              >
+                {idx > 0 ? <Divider /> : null}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    gap: 14,
+                  }}
+                >
+                  <View
+                    style={{
+                      height: 38,
+                      width: 38,
+                      borderRadius: 12,
+                      backgroundColor: s.isCurrent
+                        ? "#ECFDF5"
+                        : colors.surfaceMuted,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <MaterialIcons
+                      name={meta.icon}
+                      size={19}
+                      color={s.isCurrent ? "#10B981" : colors.text}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "700",
+                          color: colors.text,
+                        }}
+                      >
+                        {meta.label}
+                      </Text>
+                      {s.isCurrent ? (
+                        <View
+                          style={{
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 999,
+                            backgroundColor: "#ECFDF5",
+                            borderWidth: 1,
+                            borderColor: "#A7F3D0",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 9,
+                              fontWeight: "800",
+                              color: "#047857",
+                              letterSpacing: 0.6,
+                            }}
+                          >
+                            THIS DEVICE
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={{
+                        marginTop: 2,
+                        fontSize: 12,
+                        color: colors.textMuted,
+                      }}
+                    >
+                      Signed in {formatRelative(s.createdAt)}
+                    </Text>
+                  </View>
+                  {isRevoking ? (
                     <ActivityIndicator size="small" color={colors.danger} />
                   ) : (
                     <Pressable
                       onPress={() => handleRevoke(s)}
                       hitSlop={8}
                       style={{
-                        paddingHorizontal: 10,
+                        paddingHorizontal: 11,
                         paddingVertical: 6,
                         borderRadius: 999,
                         backgroundColor: colors.dangerSurface,
@@ -413,18 +537,19 @@ export const SettingsSecurityPage = ({
                       <Text
                         style={{
                           fontSize: 11,
-                          fontWeight: "700",
+                          fontWeight: "800",
                           color: colors.danger,
+                          letterSpacing: 0.4,
                         }}
                       >
                         Revoke
                       </Text>
                     </Pressable>
-                  )
-                }
-              />
-            </View>
-          ))
+                  )}
+                </View>
+              </Animated.View>
+            );
+          })
         )}
       </Section>
     </SettingsScreen>
@@ -500,9 +625,7 @@ const PasswordField = ({
         </Pressable>
       </View>
       {error ? (
-        <Text
-          style={{ marginTop: 4, fontSize: 11, color: colors.danger }}
-        >
+        <Text style={{ marginTop: 4, fontSize: 11, color: colors.danger }}>
           {error}
         </Text>
       ) : null}

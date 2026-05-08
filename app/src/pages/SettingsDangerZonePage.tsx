@@ -7,9 +7,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTheme } from "../providers/ThemeProvider";
 import { useAuth } from "../providers/AuthProvider";
 import { Section, SettingsScreen } from "../components/SettingsScreen";
@@ -78,56 +80,100 @@ export const SettingsDangerZonePage = ({
   return (
     <SettingsScreen
       title="Delete account"
+      eyebrow="Danger zone"
       subtitle="Permanently remove your access"
       onBack={onBack}
     >
-      <View
+      {/* Warning hero */}
+      <Animated.View
+        entering={FadeInDown.duration(420).delay(40)}
         style={{
-          marginTop: 12,
-          padding: 18,
-          borderRadius: 18,
-          backgroundColor: colors.dangerSurface,
-          borderWidth: 1,
-          borderColor: colors.danger + "33",
-          flexDirection: "row",
-          gap: 14,
+          marginTop: 8,
+          borderRadius: 24,
+          overflow: "hidden",
+          shadowColor: "#7F1D1D",
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.18,
+          shadowRadius: 24,
+          elevation: 8,
         }}
       >
-        <View
-          style={{
-            height: 38,
-            width: 38,
-            borderRadius: 12,
-            backgroundColor: colors.danger,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+        <LinearGradient
+          colors={["#7F1D1D", "#991B1B", "#0F172A"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ padding: 22 }}
         >
-          <MaterialIcons name="warning" size={20} color="#FFFFFF" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{ fontSize: 14, fontWeight: "700", color: colors.danger }}
-          >
-            This cannot be undone
-          </Text>
-          <Text
+          <View
+            pointerEvents="none"
             style={{
-              marginTop: 4,
-              fontSize: 12,
-              color: colors.textMuted,
-              lineHeight: 18,
+              position: "absolute",
+              top: -40,
+              right: -30,
+              width: 160,
+              height: 160,
+              borderRadius: 999,
+              backgroundColor: "rgba(248,113,113,0.18)",
+            }}
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              marginBottom: 12,
             }}
           >
-            Your account {userLabel ? `(${userLabel})` : ""} will be removed.
-            Sales history is preserved for tax/audit reasons but your name,
-            email, and phone are anonymized. You won't be able to sign back in.
-          </Text>
-        </View>
-      </View>
+            <View
+              style={{
+                height: 44,
+                width: 44,
+                borderRadius: 14,
+                backgroundColor: "rgba(255,255,255,0.12)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.18)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MaterialIcons name="warning" size={22} color="#FCA5A5" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "800",
+                  color: "#FECACA",
+                  letterSpacing: -0.3,
+                }}
+              >
+                This action cannot be undone
+              </Text>
+              <Text
+                style={{
+                  marginTop: 3,
+                  fontSize: 12,
+                  color: "rgba(254,226,226,0.7)",
+                  fontWeight: "600",
+                }}
+              >
+                Bizezy will sign you out from all devices.
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ gap: 10 }}>
+            <BulletPoint text="Your name, email and phone are anonymized" />
+            <BulletPoint text="All your sessions and tokens are revoked" />
+            <BulletPoint text="Sales history is preserved for tax & audit reasons" />
+            <BulletPoint text="You won't be able to sign back in" />
+          </View>
+        </LinearGradient>
+      </Animated.View>
 
       <Section
         label="Confirm with password"
+        delay={120}
         footnote="Type DELETE in capital letters in the second box to confirm."
       >
         <View style={{ padding: 16, gap: 12 }}>
@@ -135,14 +181,14 @@ export const SettingsDangerZonePage = ({
             <Text
               style={{
                 fontSize: 11,
-                fontWeight: "700",
+                fontWeight: "800",
                 color: colors.textSubtle,
                 letterSpacing: 1,
                 textTransform: "uppercase",
                 marginBottom: 6,
               }}
             >
-              Account password
+              Account password{userLabel ? ` (${userLabel})` : ""}
             </Text>
             <View
               style={{
@@ -178,7 +224,7 @@ export const SettingsDangerZonePage = ({
             <Text
               style={{
                 fontSize: 11,
-                fontWeight: "700",
+                fontWeight: "800",
                 color: colors.textSubtle,
                 letterSpacing: 1,
                 textTransform: "uppercase",
@@ -197,17 +243,23 @@ export const SettingsDangerZonePage = ({
               style={{
                 paddingVertical: 12,
                 paddingHorizontal: 14,
-                borderWidth: 1,
+                borderWidth: 1.5,
                 borderColor:
-                  confirm.length > 0 && confirm !== "DELETE"
+                  confirm === "DELETE"
                     ? colors.danger
-                    : colors.border,
+                    : confirm.length > 0
+                      ? colors.danger
+                      : colors.border,
                 borderRadius: 12,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor:
+                  confirm === "DELETE"
+                    ? colors.dangerSurface
+                    : colors.surfaceMuted,
                 color: colors.text,
-                fontSize: 14,
-                letterSpacing: 2,
-                fontWeight: "700",
+                fontSize: 16,
+                letterSpacing: 4,
+                fontWeight: "800",
+                textAlign: "center",
               }}
             />
           </View>
@@ -220,12 +272,24 @@ export const SettingsDangerZonePage = ({
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              paddingVertical: 14,
+              paddingVertical: 16,
               borderRadius: 14,
+              overflow: "hidden",
               backgroundColor:
-                !ready || submitting ? colors.surfaceMuted : colors.danger,
+                !ready || submitting ? colors.surfaceMuted : "#0F172A",
             }}
           >
+            {ready && !submitting ? (
+              <LinearGradient
+                colors={["#DC2626", "#7F1D1D"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                }}
+              />
+            ) : null}
             {submitting ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
@@ -239,7 +303,8 @@ export const SettingsDangerZonePage = ({
               style={{
                 color: !ready || submitting ? colors.textSubtle : "#FFFFFF",
                 fontSize: 14,
-                fontWeight: "700",
+                fontWeight: "800",
+                letterSpacing: 0.3,
               }}
             >
               {submitting ? "Deleting…" : "Delete my account"}
@@ -250,3 +315,28 @@ export const SettingsDangerZonePage = ({
     </SettingsScreen>
   );
 };
+
+const BulletPoint = ({ text }: { text: string }) => (
+  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+    <View
+      style={{
+        marginTop: 7,
+        height: 4,
+        width: 4,
+        borderRadius: 999,
+        backgroundColor: "#FCA5A5",
+      }}
+    />
+    <Text
+      style={{
+        flex: 1,
+        fontSize: 12.5,
+        color: "rgba(254,226,226,0.85)",
+        lineHeight: 18,
+        fontWeight: "500",
+      }}
+    >
+      {text}
+    </Text>
+  </View>
+);

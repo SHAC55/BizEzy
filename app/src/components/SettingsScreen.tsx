@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ComponentProps, type ReactNode } from "react";
 import {
   Pressable,
   ScrollView,
@@ -7,12 +7,23 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useTheme } from "../providers/ThemeProvider";
+
+type IconName = ComponentProps<typeof MaterialIcons>["name"];
 
 type SettingsScreenProps = {
   title: string;
+  eyebrow?: string;
   subtitle?: string;
   onBack?: () => void;
   rightSlot?: ReactNode;
@@ -22,6 +33,7 @@ type SettingsScreenProps = {
 
 export const SettingsScreen = ({
   title,
+  eyebrow,
   subtitle,
   onBack,
   rightSlot,
@@ -43,38 +55,35 @@ export const SettingsScreen = ({
         <View
           style={{
             paddingHorizontal: 18,
-            paddingTop: 4,
-            paddingBottom: 12,
+            paddingTop: 6,
+            paddingBottom: 14,
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
           }}
         >
-          {onBack ? (
-            <Pressable
-              onPress={onBack}
-              hitSlop={12}
-              style={{
-                height: 38,
-                width: 38,
-                borderRadius: 12,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MaterialIcons name="arrow-back" size={18} color={colors.text} />
-            </Pressable>
-          ) : null}
-          <Animated.View entering={FadeIn.duration(160)} style={{ flex: 1 }}>
+          {onBack ? <BackButton onPress={onBack} /> : null}
+          <Animated.View entering={FadeIn.duration(180)} style={{ flex: 1 }}>
+            {eyebrow ? (
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "800",
+                  color: colors.textSubtle,
+                  letterSpacing: 2.4,
+                  textTransform: "uppercase",
+                  marginBottom: 2,
+                }}
+              >
+                {eyebrow}
+              </Text>
+            ) : null}
             <Text
               style={{
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: "800",
                 color: colors.text,
-                letterSpacing: -0.4,
+                letterSpacing: -0.6,
               }}
             >
               {title}
@@ -83,8 +92,9 @@ export const SettingsScreen = ({
               <Text
                 style={{
                   marginTop: 2,
-                  fontSize: 12,
+                  fontSize: 13,
                   color: colors.textMuted,
+                  lineHeight: 18,
                 }}
               >
                 {subtitle}
@@ -95,7 +105,7 @@ export const SettingsScreen = ({
         </View>
       </SafeAreaView>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 36 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
         {children}
@@ -105,40 +115,104 @@ export const SettingsScreen = ({
   );
 };
 
+const BackButton = ({ onPress }: { onPress: () => void }) => {
+  const { colors } = useTheme();
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => {
+          scale.value = withSpring(0.92, { damping: 18, stiffness: 360 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 18, stiffness: 320 });
+        }}
+        hitSlop={12}
+        style={{
+          height: 38,
+          width: 38,
+          borderRadius: 13,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.04,
+          shadowRadius: 2,
+        }}
+      >
+        <MaterialIcons name="arrow-back-ios-new" size={15} color={colors.text} />
+      </Pressable>
+    </Animated.View>
+  );
+};
+
 export const Section = ({
   label,
   children,
   footnote,
+  delay = 0,
 }: {
   label?: string;
   children: ReactNode;
   footnote?: string;
+  delay?: number;
 }) => {
   const { colors } = useTheme();
   return (
-    <View style={{ marginTop: 20 }}>
+    <Animated.View
+      entering={FadeInDown.duration(380).delay(delay)}
+      style={{ marginTop: 22 }}
+    >
       {label ? (
-        <Text
+        <View
           style={{
-            fontSize: 11,
-            fontWeight: "700",
-            letterSpacing: 1.2,
-            color: colors.textSubtle,
-            textTransform: "uppercase",
-            marginBottom: 8,
-            marginLeft: 4,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 7,
+            marginBottom: 10,
+            marginLeft: 6,
           }}
         >
-          {label}
-        </Text>
+          <View
+            style={{
+              height: 4,
+              width: 4,
+              borderRadius: 999,
+              backgroundColor: colors.textSubtle,
+              opacity: 0.5,
+            }}
+          />
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "800",
+              letterSpacing: 1.4,
+              color: colors.textSubtle,
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </Text>
+        </View>
       ) : null}
       <View
         style={{
           backgroundColor: colors.surface,
-          borderRadius: 18,
+          borderRadius: 20,
           borderWidth: 1,
           borderColor: colors.border,
           overflow: "hidden",
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.04,
+          shadowRadius: 6,
         }}
       >
         {children}
@@ -146,23 +220,26 @@ export const Section = ({
       {footnote ? (
         <Text
           style={{
-            marginTop: 8,
-            marginLeft: 4,
+            marginTop: 10,
+            marginLeft: 6,
+            marginRight: 6,
             fontSize: 12,
             color: colors.textSubtle,
+            lineHeight: 17,
           }}
         >
           {footnote}
         </Text>
       ) : null}
-    </View>
+    </Animated.View>
   );
 };
 
 type RowProps = {
-  icon?: keyof typeof MaterialIcons.glyphMap;
+  icon?: IconName;
   iconColor?: string;
   iconBg?: string;
+  iconGradient?: [string, string];
   label: string;
   description?: string;
   value?: ReactNode;
@@ -177,6 +254,7 @@ export const Row = ({
   icon,
   iconColor,
   iconBg,
+  iconGradient,
   label,
   description,
   value,
@@ -187,8 +265,21 @@ export const Row = ({
   disabled,
 }: RowProps) => {
   const { colors } = useTheme();
+  const scale = useSharedValue(1);
   const isLink = Boolean(onPress);
   const labelColor = destructive ? colors.danger : colors.text;
+
+  const pressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const onPressIn = () => {
+    if (!isLink || disabled) return;
+    scale.value = withTiming(0.99, { duration: 100 });
+  };
+  const onPressOut = () => {
+    scale.value = withSpring(1, { damping: 18, stiffness: 320 });
+  };
 
   const content = (
     <View
@@ -198,20 +289,32 @@ export const Row = ({
         paddingHorizontal: 16,
         paddingVertical: 14,
         gap: 14,
-        opacity: disabled ? 0.5 : 1,
+        opacity: disabled ? 0.45 : 1,
       }}
     >
       {icon ? (
         <View
           style={{
-            height: 34,
-            width: 34,
-            borderRadius: 10,
-            backgroundColor: iconBg ?? colors.surfaceMuted,
+            height: 36,
+            width: 36,
+            borderRadius: 11,
+            overflow: "hidden",
             alignItems: "center",
             justifyContent: "center",
+            backgroundColor: iconBg ?? colors.surfaceMuted,
           }}
         >
+          {iconGradient ? (
+            <LinearGradient
+              colors={iconGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                position: "absolute",
+                inset: 0,
+              }}
+            />
+          ) : null}
           <MaterialIcons
             name={icon}
             size={18}
@@ -221,7 +324,12 @@ export const Row = ({
       ) : null}
       <View style={{ flex: 1 }}>
         <Text
-          style={{ fontSize: 14, fontWeight: "600", color: labelColor }}
+          style={{
+            fontSize: 14.5,
+            fontWeight: "600",
+            color: labelColor,
+            letterSpacing: -0.1,
+          }}
         >
           {label}
         </Text>
@@ -247,7 +355,11 @@ export const Row = ({
       ) : null}
       {rightSlot}
       {showChevron && isLink ? (
-        <MaterialIcons name="chevron-right" size={20} color={colors.textSubtle} />
+        <MaterialIcons
+          name="chevron-right"
+          size={20}
+          color={colors.textSubtle}
+        />
       ) : null}
     </View>
   );
@@ -257,16 +369,20 @@ export const Row = ({
   }
 
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      android_ripple={{ color: "rgba(0,0,0,0.04)", borderless: false }}
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? colors.surfaceMuted : "transparent",
-      })}
-    >
-      {content}
-    </Pressable>
+    <Animated.View style={pressStyle}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        disabled={disabled}
+        android_ripple={{ color: "rgba(0,0,0,0.05)", borderless: false }}
+        style={({ pressed }) => ({
+          backgroundColor: pressed ? colors.surfaceMuted : "transparent",
+        })}
+      >
+        {content}
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -274,7 +390,7 @@ export const Divider = () => {
   const { colors } = useTheme();
   return (
     <View
-      style={{ height: 1, backgroundColor: colors.divider, marginLeft: 64 }}
+      style={{ height: 1, backgroundColor: colors.divider, marginLeft: 66 }}
     />
   );
 };
