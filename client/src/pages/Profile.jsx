@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuthContext } from "../context/AuthContext";
 import { useLogout } from "../hooks/useAuth";
 import { useUpdateBusiness } from "../hooks/useBusiness";
+
 import {
   MdBusiness,
   MdPerson,
@@ -13,389 +14,10 @@ import {
   MdLocationOn,
 } from "react-icons/md";
 
-/* ─── Design tokens ──────────────────────────────────────────────────── */
-const token = {
-  // Surfaces
-  white:     "#ffffff",
-  offWhite:  "#f9f9f8",
-  cloud:     "#f2f1ef",
-  fog:       "#e8e7e4",
-  mist:      "#d4d3cf",
-
-  // Ink
-  ink100:    "#1a1a18",
-  ink80:     "#2e2e2b",
-  ink60:     "#555551",
-  ink40:     "#888884",
-  ink20:     "#b8b7b3",
-  ink10:     "#d4d3cf",
-};
-
-const styles = {
-  /* Page */
-  page: {
-    minHeight: "100vh",
-    width: "100%",
-    background: token.cloud,
-    fontFamily: "'DM Mono', 'Fira Mono', 'Courier New', monospace",
-    paddingBottom: "5rem",
-  },
-
-  /* Hero strip */
-  hero: {
-    background: token.ink100,
-    color: token.white,
-    padding: "3rem 0 2.5rem",
-  },
-  heroInner: {
-    maxWidth: "680px",
-    margin: "0 auto",
-    padding: "0 2rem",
-    display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: "1rem",
-  },
-  heroEyebrow: {
-    fontSize: "9px",
-    letterSpacing: "0.28em",
-    textTransform: "uppercase",
-    color: token.ink40,
-    marginBottom: "0.4rem",
-    fontFamily: "inherit",
-  },
-  heroTitle: {
-    fontFamily: "'Playfair Display', Georgia, serif",
-    fontSize: "clamp(2.5rem, 6vw, 4rem)",
-    fontWeight: 900,
-    lineHeight: 1,
-    letterSpacing: "-0.02em",
-    color: token.white,
-    margin: 0,
-  },
-  heroSub: {
-    fontSize: "11px",
-    color: token.ink40,
-    letterSpacing: "0.15em",
-    marginTop: "0.5rem",
-    textTransform: "uppercase",
-  },
-
-  /* Sign-out button */
-  signoutBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    border: `1px solid ${token.ink60}`,
-    color: token.ink20,
-    background: "transparent",
-    padding: "0.6rem 1.1rem",
-    fontSize: "9px",
-    letterSpacing: "0.22em",
-    textTransform: "uppercase",
-    fontFamily: "inherit",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    transition: "all 0.15s ease",
-  },
-
-  /* Main body */
-  body: {
-    maxWidth: "680px",
-    margin: "0 auto",
-    padding: "2rem 2rem 0",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1px",           // hairline gap between panels = stacked look
-  },
-
-  /* Panel (card) */
-  panel: {
-    background: token.white,
-    border: `1px solid ${token.fog}`,
-  },
-
-  /* Panel header */
-  panelHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-    padding: "1rem 1.5rem",
-    borderBottom: `1px solid ${token.fog}`,
-    background: token.offWhite,
-  },
-  panelIconBox: {
-    width: "28px",
-    height: "28px",
-    border: `1px solid ${token.fog}`,
-    background: token.white,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: token.ink40,
-    flexShrink: 0,
-  },
-  panelTitle: {
-    fontSize: "9px",
-    letterSpacing: "0.22em",
-    textTransform: "uppercase",
-    color: token.ink60,
-    margin: 0,
-  },
-  panelSubtitle: {
-    fontSize: "10px",
-    color: token.ink20,
-    letterSpacing: "0.08em",
-    marginTop: "1px",
-  },
-
-  /* Panel body */
-  panelBody: {
-    padding: "1.5rem",
-  },
-
-  /* Avatar row */
-  avatarRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-    paddingBottom: "1.5rem",
-    borderBottom: `1px solid ${token.fog}`,
-  },
-  avatar: {
-    width: "52px",
-    height: "52px",
-    background: token.ink100,
-    color: token.white,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "'Playfair Display', Georgia, serif",
-    fontSize: "22px",
-    fontWeight: 900,
-    flexShrink: 0,
-    letterSpacing: "-0.02em",
-  },
-  avatarName: {
-    fontFamily: "'Playfair Display', Georgia, serif",
-    fontSize: "1.25rem",
-    fontWeight: 700,
-    color: token.ink100,
-    display: "flex",
-    alignItems: "center",
-    gap: "0.4rem",
-    letterSpacing: "-0.01em",
-  },
-  avatarMeta: {
-    fontSize: "10px",
-    color: token.ink40,
-    letterSpacing: "0.1em",
-    marginTop: "2px",
-    textTransform: "uppercase",
-  },
-
-  /* 2-col info grid */
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "1px",
-    background: token.fog,
-    border: `1px solid ${token.fog}`,
-  },
-  infoCell: {
-    background: token.white,
-    padding: "0.85rem 1rem",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.65rem",
-  },
-  infoCellIcon: {
-    color: token.ink20,
-    flexShrink: 0,
-  },
-  infoCellLabel: {
-    fontSize: "8.5px",
-    letterSpacing: "0.22em",
-    textTransform: "uppercase",
-    color: token.ink40,
-    marginBottom: "2px",
-  },
-  infoCellValue: {
-    fontSize: "12px",
-    fontWeight: 500,
-    color: token.ink80,
-    letterSpacing: "0.02em",
-  },
-
-  /* Status rows */
-  statusRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-    padding: "0.9rem 0",
-    borderBottom: `1px solid ${token.fog}`,
-  },
-  statusDot: (active) => ({
-    width: "6px",
-    height: "6px",
-    borderRadius: "50%",
-    background: active ? token.ink100 : token.ink20,
-    flexShrink: 0,
-  }),
-  statusText: {
-    fontSize: "11px",
-    color: token.ink60,
-    letterSpacing: "0.05em",
-  },
-  statusStrong: {
-    fontWeight: 600,
-    color: token.ink100,
-  },
-
-  /* Form elements */
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "1rem",
-  },
-  label: {
-    display: "block",
-  },
-  labelText: {
-    display: "block",
-    fontSize: "8.5px",
-    letterSpacing: "0.22em",
-    textTransform: "uppercase",
-    color: token.ink40,
-    marginBottom: "6px",
-  },
-  input: {
-    width: "100%",
-    background: token.offWhite,
-    border: `1px solid ${token.fog}`,
-    color: token.ink80,
-    fontSize: "11px",
-    fontFamily: "inherit",
-    padding: "0.7rem 0.85rem",
-    outline: "none",
-    boxSizing: "border-box",
-    letterSpacing: "0.03em",
-    transition: "border-color 0.12s ease",
-  },
-  textarea: {
-    width: "100%",
-    background: token.offWhite,
-    border: `1px solid ${token.fog}`,
-    color: token.ink80,
-    fontSize: "11px",
-    fontFamily: "inherit",
-    padding: "0.7rem 0.85rem",
-    outline: "none",
-    resize: "none",
-    boxSizing: "border-box",
-    letterSpacing: "0.03em",
-    lineHeight: 1.6,
-  },
-
-  /* Hint strip */
-  hint: {
-    marginTop: "1.25rem",
-    borderLeft: `2px solid ${token.ink20}`,
-    background: token.offWhite,
-    padding: "0.85rem 1rem",
-    display: "flex",
-    gap: "0.65rem",
-    alignItems: "flex-start",
-  },
-  hintTitle: {
-    fontSize: "10px",
-    fontWeight: 600,
-    color: token.ink80,
-    letterSpacing: "0.06em",
-    marginBottom: "2px",
-    textTransform: "uppercase",
-  },
-  hintBody: {
-    fontSize: "10px",
-    color: token.ink60,
-    letterSpacing: "0.04em",
-    lineHeight: 1.55,
-  },
-
-  /* Save button */
-  saveBtn: {
-    marginTop: "1.25rem",
-    background: token.ink100,
-    color: token.white,
-    border: "none",
-    fontSize: "9px",
-    letterSpacing: "0.25em",
-    textTransform: "uppercase",
-    fontFamily: "inherit",
-    padding: "0.85rem 1.75rem",
-    cursor: "pointer",
-    transition: "background 0.15s ease",
-  },
-
-  /* Error banner */
-  error: {
-    marginBottom: "1rem",
-    border: `1px solid ${token.mist}`,
-    background: token.offWhite,
-    padding: "0.7rem 1rem",
-    fontSize: "10px",
-    color: token.ink60,
-    letterSpacing: "0.06em",
-    borderLeft: `3px solid ${token.ink80}`,
-  },
-
-  /* Loading screen */
-  loadingWrap: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: token.cloud,
-  },
-  spinner: {
-    width: "36px",
-    height: "36px",
-    border: `1.5px solid ${token.fog}`,
-    borderTopColor: token.ink80,
-    borderRadius: "50%",
-    animation: "spin 0.8s linear infinite",
-    marginBottom: "1rem",
-  },
-  loadingLabel: {
-    fontSize: "9px",
-    letterSpacing: "0.28em",
-    textTransform: "uppercase",
-    color: token.ink40,
-    fontFamily: "'DM Mono', 'Fira Mono', monospace",
-  },
-};
-
-/* ─── Sub-components ─────────────────────────────────────────────────── */
-
-const Panel = ({ icon, title, subtitle, children }) => (
-  <div style={styles.panel}>
-    <div style={styles.panelHeader}>
-      <div style={styles.panelIconBox}>{icon}</div>
-      <div>
-        <p style={styles.panelTitle}>{title}</p>
-        {subtitle && <p style={styles.panelSubtitle}>{subtitle}</p>}
-      </div>
-    </div>
-    <div style={styles.panelBody}>{children}</div>
-  </div>
-);
-
-/* ─── Main component ─────────────────────────────────────────────────── */
-
 const Profile = () => {
   const { user, isLoading } = useAuthContext();
   const { logout, isLoading: isLoggingOut } = useLogout();
+
   const {
     updateBusiness,
     isLoading: isSavingBusiness,
@@ -418,11 +40,12 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div style={styles.loadingWrap}>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ textAlign: "center" }}>
-          <div style={styles.spinner} />
-          <p style={styles.loadingLabel}>Loading…</p>
+      <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 rounded-full border-2 border-neutral-300 border-t-black animate-spin" />
+          <p className="text-sm tracking-[0.25em] uppercase text-neutral-500">
+            Loading
+          </p>
         </div>
       </div>
     );
@@ -439,203 +62,316 @@ const Profile = () => {
   };
 
   const infoCards = [
-    { icon: <MdPerson size={16} />, label: "Username", value: user.name || "—" },
-    { icon: <MdEmail size={16} />, label: "Email", value: user.email || "—" },
-    { icon: <MdPhone size={16} />, label: "Mobile", value: user.mobile || "—" },
-    { icon: <MdBusiness size={16} />, label: "Business", value: user.business?.name || "—" },
+    {
+      icon: <MdPerson size={18} />,
+      label: "Username",
+      value: user.name || "—",
+    },
+    {
+      icon: <MdEmail size={18} />,
+      label: "Email",
+      value: user.email || "—",
+    },
+    {
+      icon: <MdPhone size={18} />,
+      label: "Mobile",
+      value: user.mobile || "—",
+    },
+    {
+      icon: <MdBusiness size={18} />,
+      label: "Business",
+      value: user.business?.name || "—",
+    },
   ];
 
   return (
-    <div style={styles.page}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
-        input:focus, textarea:focus {
-          border-color: #1a1a18 !important;
-          background: #ffffff !important;
-        }
-        input::placeholder, textarea::placeholder { color: #d4d3cf; }
-        button[data-signout]:hover { background: #2e2e2b !important; border-color: #2e2e2b !important; color: #f9f9f8 !important; }
-        button[data-save]:hover { background: #2e2e2b !important; }
-        button:disabled { opacity: 0.4 !important; cursor: not-allowed !important; }
-      `}</style>
-
-      {/* ── Hero ── */}
-      <div style={styles.hero}>
-        <div style={styles.heroInner}>
+    <div className="min-h-screen w-full bg-neutral-100">
+      {/* HERO */}
+      <div className="bg-black text-white">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 md:py-14 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <p style={styles.heroEyebrow}>Account Dashboard</p>
-            <h1 style={styles.heroTitle}>Profile</h1>
-            <p style={styles.heroSub}>{user.name || "User"}</p>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-neutral-400 mb-3">
+              Account Dashboard
+            </p>
+
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight">
+              Profile
+            </h1>
+
+            <p className="mt-3 text-sm uppercase tracking-[0.2em] text-neutral-400">
+              {user.name}
+            </p>
           </div>
 
           <button
-            data-signout
             onClick={logout}
             disabled={isLoggingOut}
-            style={styles.signoutBtn}
+            className="h-11 px-5 rounded-xl border border-neutral-700 hover:bg-neutral-900 transition flex items-center justify-center gap-2 text-sm font-medium"
           >
-            {isLoggingOut
-              ? <div style={{ width: 12, height: 12, border: "1px solid #888884", borderTopColor: "#f9f9f8", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-              : <MdLogout size={14} />
-            }
-            {isLoggingOut ? "Logging out…" : "Sign out"}
+            {isLoggingOut ? (
+              <div className="h-4 w-4 rounded-full border-2 border-neutral-500 border-t-white animate-spin" />
+            ) : (
+              <MdLogout size={18} />
+            )}
+
+            {isLoggingOut ? "Logging out..." : "Sign out"}
           </button>
         </div>
       </div>
 
-      {/* ── Body ── */}
-      <div style={styles.body}>
+      {/* BODY */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-6">
 
-        {/* ── Personal Information ── */}
-        <Panel
-          icon={<MdPerson size={15} />}
-          title="Personal Information"
-        >
-          {/* Avatar row */}
-          <div style={styles.avatarRow}>
-            <div style={styles.avatar}>
-              {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+        {/* PROFILE CARD */}
+        <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+          <div className="border-b border-neutral-200 px-6 py-5 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-neutral-100 flex items-center justify-center">
+              <MdPerson size={20} className="text-neutral-700" />
             </div>
+
             <div>
-              <div style={styles.avatarName}>
-                {user.name || "—"}
-                {user.verified && (
-                  <MdVerified size={15} style={{ color: token.ink40 }} title="Verified" />
-                )}
-              </div>
-              <p style={styles.avatarMeta}>
-                Member since{" "}
-                {new Date(user.createdAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-neutral-800">
+                Personal Information
+              </h2>
+
+              <p className="text-xs text-neutral-500 mt-1">
+                Your account details
               </p>
             </div>
           </div>
 
-          {/* Info grid */}
-          <div style={styles.infoGrid}>
-            {infoCards.map((card) => (
-              <div key={card.label} style={styles.infoCell}>
-                <span style={styles.infoCellIcon}>{card.icon}</span>
-                <div>
-                  <p style={styles.infoCellLabel}>{card.label}</p>
-                  <p style={styles.infoCellValue}>{card.value}</p>
+          <div className="p-6">
+
+            {/* USER HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5 pb-6 border-b border-neutral-200">
+              <div className="h-16 w-16 rounded-2xl bg-black text-white flex items-center justify-center text-2xl font-bold">
+                {user.name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-2xl font-bold text-neutral-900">
+                    {user.name}
+                  </h3>
+
+                  {user.verified && (
+                    <MdVerified
+                      size={20}
+                      className="text-emerald-600"
+                    />
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
 
-        {/* ── Account Status ── */}
-        <Panel
-          icon={<MdVerified size={15} />}
-          title="Account Status"
-        >
-          <div>
-            <div style={styles.statusRow}>
-              <span style={styles.statusDot(user.verified)} />
-              <p style={styles.statusText}>
-                Account is{" "}
-                <strong style={styles.statusStrong}>
-                  {user.verified ? "verified" : "pending verification"}
-                </strong>
+                <p className="text-sm text-neutral-500 mt-1">
+                  Member since{" "}
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            {/* INFO GRID */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+              {infoCards.map((card) => (
+                <div
+                  key={card.label}
+                  className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 flex items-start gap-4"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-700 shrink-0">
+                    {card.icon}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                      {card.label}
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold text-neutral-900 break-words">
+                      {card.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* STATUS */}
+        <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-xl bg-neutral-100 flex items-center justify-center">
+              <MdVerified size={20} className="text-neutral-700" />
+            </div>
+
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide">
+                Account Status
+              </h2>
+
+              <p className="text-xs text-neutral-500 mt-1">
+                Verification & provider details
               </p>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`h-3 w-3 rounded-full ${
+                  user.verified
+                    ? "bg-emerald-500"
+                    : "bg-amber-500"
+                }`}
+              />
+
+              <p className="text-sm text-neutral-700">
+                Account is{" "}
+                <span className="font-semibold">
+                  {user.verified
+                    ? "verified"
+                    : "pending verification"}
+                </span>
+              </p>
+            </div>
+
             {user.provider && (
-              <div style={{ ...styles.statusRow, borderBottom: "none", paddingBottom: 0 }}>
-                <span style={styles.statusDot(true)} />
-                <p style={styles.statusText}>
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 rounded-full bg-black" />
+
+                <p className="text-sm text-neutral-700">
                   Signed in via{" "}
-                  <strong style={styles.statusStrong}>
+                  <span className="font-semibold">
                     {user.provider}
-                  </strong>
+                  </span>
                 </p>
               </div>
             )}
           </div>
-        </Panel>
+        </div>
 
-        {/* ── Business Details ── */}
-        <Panel
-          icon={<MdReceiptLong size={15} />}
-          title="Invoice Business Details"
-          subtitle="Used in invoices and reminder messages"
-        >
-          {businessError && (
-            <div style={styles.error}>{businessError}</div>
-          )}
+        {/* BUSINESS DETAILS */}
+        <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden">
+          <div className="border-b border-neutral-200 px-6 py-5 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-neutral-100 flex items-center justify-center">
+              <MdReceiptLong size={20} className="text-neutral-700" />
+            </div>
 
-          <form onSubmit={handleBusinessSubmit}>
-            <div style={styles.formGrid}>
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide">
+                Invoice Business Details
+              </h2>
 
-              {/* Business Name */}
-              <label style={styles.label}>
-                <span style={styles.labelText}>Business Name</span>
-                <input
-                  value={businessForm.name}
-                  onChange={(e) =>
-                    setBusinessForm((c) => ({ ...c, name: e.target.value }))
-                  }
-                  style={styles.input}
-                />
-              </label>
+              <p className="text-xs text-neutral-500 mt-1">
+                Used in invoices & reminders
+              </p>
+            </div>
+          </div>
 
-              {/* GST Number */}
-              <label style={styles.label}>
-                <span style={styles.labelText}>GST Number</span>
-                <input
-                  value={businessForm.gstNumber}
-                  onChange={(e) =>
-                    setBusinessForm((c) => ({ ...c, gstNumber: e.target.value }))
-                  }
-                  placeholder="e.g. 29ABCDE1234F1Z5"
-                  style={styles.input}
-                />
-              </label>
+          <div className="p-6">
 
-              {/* Address */}
-              <label style={{ ...styles.label, gridColumn: "1 / -1" }}>
-                <span style={styles.labelText}>Business Address</span>
+            {businessError && (
+              <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {businessError}
+              </div>
+            )}
+
+            <form onSubmit={handleBusinessSubmit} className="space-y-5">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                {/* BUSINESS NAME */}
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.2em] text-neutral-500 mb-2">
+                    Business Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={businessForm.name}
+                    onChange={(e) =>
+                      setBusinessForm((c) => ({
+                        ...c,
+                        name: e.target.value,
+                      }))
+                    }
+                    className="w-full h-12 rounded-2xl border border-neutral-300 bg-neutral-50 px-4 text-sm outline-none focus:border-black focus:bg-white transition"
+                  />
+                </div>
+
+                {/* GST */}
+                <div>
+                  <label className="block text-xs uppercase tracking-[0.2em] text-neutral-500 mb-2">
+                    GST Number
+                  </label>
+
+                  <input
+                    type="text"
+                    value={businessForm.gstNumber}
+                    onChange={(e) =>
+                      setBusinessForm((c) => ({
+                        ...c,
+                        gstNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="29ABCDE1234F1Z5"
+                    className="w-full h-12 rounded-2xl border border-neutral-300 bg-neutral-50 px-4 text-sm outline-none focus:border-black focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              {/* ADDRESS */}
+              <div>
+                <label className="block text-xs uppercase tracking-[0.2em] text-neutral-500 mb-2">
+                  Business Address
+                </label>
+
                 <textarea
+                  rows={5}
                   value={businessForm.address}
                   onChange={(e) =>
-                    setBusinessForm((c) => ({ ...c, address: e.target.value }))
+                    setBusinessForm((c) => ({
+                      ...c,
+                      address: e.target.value,
+                    }))
                   }
-                  rows={4}
                   placeholder="Billing address for invoices"
-                  style={styles.textarea}
+                  className="w-full rounded-2xl border border-neutral-300 bg-neutral-50 px-4 py-3 text-sm outline-none focus:border-black focus:bg-white transition resize-none"
                 />
-              </label>
-            </div>
-
-            {/* Hint */}
-            <div style={styles.hint}>
-              <MdLocationOn size={14} style={{ color: token.ink20, marginTop: "1px", flexShrink: 0 }} />
-              <div>
-                <p style={styles.hintTitle}>Invoice Readiness</p>
-                <p style={styles.hintBody}>
-                  {user.business?.gstNumber && user.business?.address
-                    ? "GST and address are on file — invoices will include complete billing details."
-                    : "Add your GST number and address so invoice printouts include complete billing information."}
-                </p>
               </div>
-            </div>
 
-            {/* Save */}
-            <button
-              data-save
-              type="submit"
-              disabled={isSavingBusiness}
-              style={styles.saveBtn}
-            >
-              {isSavingBusiness ? "Saving…" : "Save Business Details"}
-            </button>
-          </form>
-        </Panel>
+              {/* HINT */}
+              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 flex items-start gap-3">
+                <MdLocationOn
+                  size={20}
+                  className="text-neutral-500 shrink-0 mt-0.5"
+                />
 
+                <div>
+                  <p className="text-sm font-semibold text-neutral-800">
+                    Invoice Readiness
+                  </p>
+
+                  <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                    {user.business?.gstNumber &&
+                    user.business?.address
+                      ? "GST and address are available. Invoices will include complete billing details."
+                      : "Add GST number and address to generate professional invoices."}
+                  </p>
+                </div>
+              </div>
+
+              {/* SAVE */}
+              <button
+                type="submit"
+                disabled={isSavingBusiness}
+                className="h-12 px-6 rounded-2xl bg-black hover:bg-neutral-800 transition text-white text-sm font-semibold"
+              >
+                {isSavingBusiness
+                  ? "Saving..."
+                  : "Save Business Details"}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,9 @@ import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext";
 import { queryClient } from "./lib/queryClient";
 import { BrowserRouter } from "react-router-dom";
+import ReactGA from "react-ga4";
+
+ReactGA.initialize("G-N74G38574A");
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -15,7 +18,5 @@ createRoot(document.getElementById("root")).render(
         <Toaster position="top-right" />
       </AuthProvider>
     </QueryClientProvider>
-  </BrowserRouter>,
+  </BrowserRouter>
 );
-
-
