@@ -57,4 +57,15 @@ export const queryKeys = {
     detail: (productId: string) => ["products", "detail", productId] as const,
     movements: (productId: string) => ["products", "movements", productId] as const,
   },
+  services: {
+    all: ["services"] as const,
+    lists: () => ["services", "list"] as const,
+    list: (params: {
+      page: number;
+      limit: number;
+      category: string;
+      search: string;
+    }) => ["services", "list", params] as const,
+    detail: (serviceId: string) => ["services", "detail", serviceId] as const,
+  },
 } as const;

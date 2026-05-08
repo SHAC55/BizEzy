@@ -18,6 +18,12 @@ import type {
   UpdateProductPayload,
 } from "../types/product";
 import type {
+  CreateServicePayload,
+  Service,
+  ServicesResponse,
+  UpdateServicePayload,
+} from "../types/service";
+import type {
   LoginPayload,
   OnboardingPayload,
   RegisterPayload,
@@ -306,6 +312,81 @@ export const adjustProductStock = (
 
 export const fetchProductMovements = (accessToken: string, productId: string) =>
   request<InventoryMovement[]>(`/products/${productId}/movements`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const fetchServices = (
+  accessToken: string,
+  params: {
+    page: number;
+    limit: number;
+    category?: string;
+    search?: string;
+  },
+) =>
+  request<ServicesResponse>(
+    `/services?${createQueryString({
+      page: params.page,
+      limit: params.limit,
+      category: params.category ?? "",
+      search: params.search ?? "",
+    })}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+export const createService = async (
+  accessToken: string,
+  payload: CreateServicePayload,
+) => {
+  const data = await request<{ message: string; service: Service }>(
+    "/services",
+    {
+      method: "POST",
+      body: payload,
+      headers: {
+        ...mobileHeaders,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  return data.service;
+};
+
+export const fetchService = (accessToken: string, serviceId: string) =>
+  request<Service>(`/services/${serviceId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const updateService = async (
+  accessToken: string,
+  serviceId: string,
+  payload: UpdateServicePayload,
+) => {
+  const data = await request<{ message: string; service: Service }>(
+    `/services/${serviceId}`,
+    {
+      method: "PATCH",
+      body: payload,
+      headers: {
+        ...mobileHeaders,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  return data.service;
+};
+
+export const deleteService = (accessToken: string, serviceId: string) =>
+  request<{ message?: string }>(`/services/${serviceId}`, {
+    method: "DELETE",
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },

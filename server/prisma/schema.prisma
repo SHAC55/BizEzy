@@ -89,6 +89,7 @@ model Business {
   owner     User       @relation(fields: [ownerId], references: [id])
   customers Customer[]
   products  Product[]
+  services  Service[]
   sales     Sale[]
 }
 
@@ -144,17 +145,20 @@ model Sale {
 model SaleItem {
   id          String   @id @default(uuid())
   saleId      String
-  productId   String
+  productId   String?
+  serviceId   String?
   quantity    Int
   unitPrice   Float
   totalAmount Float
   createdAt   DateTime @default(now())
 
-  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+  service Service? @relation(fields: [serviceId], references: [id])
 
   @@index([saleId])
   @@index([productId])
+  @@index([serviceId])
 }
 
 //////////////////////
@@ -205,6 +209,29 @@ model Product {
 
   @@index([businessId])
   @@unique([businessId, sku])
+}
+
+//////////////////////
+// Service
+//////////////////////
+model Service {
+  id              String   @id @default(uuid())
+  businessId      String
+  name            String
+  code            String?
+  description     String?
+  category        String?
+  costPrice       Float    @default(0)
+  price           Float
+  durationMinutes Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business  Business   @relation(fields: [businessId], references: [id])
+  saleItems SaleItem[]
+
+  @@index([businessId])
+  @@unique([businessId, code])
 }
 
 //////////////////////

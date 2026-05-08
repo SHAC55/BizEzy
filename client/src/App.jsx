@@ -23,6 +23,7 @@ const Customers = lazy(() => import("./pages/Customers"));
 const Payments = lazy(() => import("./pages/Payments"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const AddItemForm = lazy(() => import("./pages/AddItemForm"));
+const AddServiceForm = lazy(() => import("./pages/AddServiceForm"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
@@ -42,6 +43,7 @@ const App = () => {
     "/profile",
     "/add-item",
     "/add-inventory",
+    "/add-service",
     "/login",
     "/forgot-password",
     "/password/reset",
@@ -205,6 +207,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <AddItemForm />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/add-service"
+            element={
+              <ProtectedRoute>
+                <AddServiceForm />
               </ProtectedRoute>
             }
           />

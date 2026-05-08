@@ -11,16 +11,23 @@ import * as Haptics from "expo-haptics";
 import Toast from "react-native-toast-message";
 import Animated, { FadeInDown, FadeIn, FadeOut, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { AppLayout } from "../components/AppLayout";
-import { createCustomer, createSale, fetchCustomers, fetchProducts } from "../lib/api";
+import { createCustomer, createSale, fetchCustomers, fetchProducts, fetchServices } from "../lib/api";
 import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
 import type { Customer } from "../types/customer";
 import type { Product } from "../types/product";
+import type { Service } from "../types/service";
 import type { AppRoute } from "../types/navigation";
 
 type IconName = ComponentProps<typeof MaterialIcons>["name"];
 type AddSalePageProps = { onBack: () => void; onCreated: (saleId: string) => void; onNavigate: (route: AppRoute) => void };
-type SaleItem = { productId: string; quantity: string; price: string };
+type SaleItem = {
+  itemType: "product" | "service";
+  productId: string;
+  serviceId: string;
+  quantity: string;
+  price: string;
+};
 
 const fmt = (v: number | string) => `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
@@ -236,10 +243,14 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
   const qc = useQueryClient();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts]   = useState<Product[]>([]);
+  const [services, setServices]   = useState<Service[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch]   = useState("");
+  const [serviceSearch, setServiceSearch]   = useState("");
   const [customerId, setCustomerId]         = useState("");
-  const [items, setItems]                   = useState<SaleItem[]>([{ productId: "", quantity: "1", price: "0" }]);
+  const [items, setItems]                   = useState<SaleItem[]>([
+    { itemType: "product", productId: "", serviceId: "", quantity: "1", price: "0" },
+  ]);
   const [discount, setDiscount]             = useState("0");
   const [gstRate, setGstRate]               = useState("18");
   const [paidAmount, setPaidAmount]         = useState("0");
@@ -277,7 +288,12 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
     Promise.all([
       fetchCustomers(token, { page: 1, limit: 100, search: "" }),
       fetchProducts(token, { page: 1, limit: 100 }),
-    ]).then(([c, p]) => { setCustomers(c.customers); setProducts(p.products); });
+      fetchServices(token, { page: 1, limit: 100 }),
+    ]).then(([c, p, s]) => {
+      setCustomers(c.customers);
+      setProducts(p.products);
+      setServices(s.services);
+    });
   }, []);
 
   const subTotal       = useMemo(() => items.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0), [items]);
@@ -289,14 +305,37 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
 
   const filteredCustomers = customers.filter((c) => `${c.name} ${c.mobile}`.toLowerCase().includes(customerSearch.toLowerCase()));
   const filteredProducts  = products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  const filteredServices  = services.filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()));
   const selectedCustomer  = customers.find((c) => c.id === customerId);
 
   const updateItem = (i: number, next: Partial<SaleItem>) => {
-    const copy = [...items]; copy[i] = { ...copy[i], ...next };
-    if (next.productId) { const f = products.find((p) => p.id === next.productId); if (f) copy[i].price = String(f.price); }
+    const copy = [...items];
+    copy[i] = { ...copy[i], ...next };
+    if (next.productId) {
+      const f = products.find((p) => p.id === next.productId);
+      if (f) copy[i].price = String(f.price);
+    }
+    if (next.serviceId) {
+      const f = services.find((s) => s.id === next.serviceId);
+      if (f) copy[i].price = String(f.price);
+    }
     setItems(copy);
   };
-  const removeItem = (i: number) => { if (items.length === 1) return; setItems(items.filter((_, j) => j !== i)); };
+  const setItemType = (i: number, type: "product" | "service") => {
+    const copy = [...items];
+    copy[i] = {
+      ...copy[i],
+      itemType: type,
+      productId: "",
+      serviceId: "",
+      price: "0",
+    };
+    setItems(copy);
+  };
+  const removeItem = (i: number) => {
+    if (items.length === 1) return;
+    setItems(items.filter((_, j) => j !== i));
+  };
 
   const openQuickAdd = (prefillName = "") => {
     setNewCustomerName(prefillName);
@@ -365,7 +404,13 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
       setSaveStage("saving");
       const res = await createSale(token, {
         customerId,
-        items: items.map((i) => ({ productId: i.productId, quantity: Number(i.quantity), unitPrice: Number(i.price) })),
+        items: items.map((i) => ({
+          ...(i.itemType === "service"
+            ? { serviceId: i.serviceId }
+            : { productId: i.productId }),
+          quantity: Number(i.quantity),
+          unitPrice: Number(i.price),
+        })),
         subtotalAmount: subTotal, discountAmount, gstRate: Number(gstRate) || 0,
         gstAmount, totalAmount: total, paidAmount: Number(paidAmount),
         reminderDate: reminderDate || undefined,
@@ -566,11 +611,13 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
             </View>
           </Animated.View>
 
-          {/* ── Step 2: Products ── */}
+          {/* ── Step 2: Items (products + services) ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(160)}>
-            <StepHeader step={2} icon="inventory-2" color="#F59E0B" bg="#FEF3C7" title="Add Products" />
+            <StepHeader step={2} icon="inventory-2" color="#F59E0B" bg="#FEF3C7" title="Add Items" />
             {items.map((item, idx) => {
+              const isService = item.itemType === "service";
               const prod = products.find((p) => p.id === item.productId);
+              const svc = services.find((s) => s.id === item.serviceId);
               const lineTotal = (Number(item.quantity) || 0) * (Number(item.price) || 0);
               return (
                 <View key={idx} className="bg-white rounded-2xl border border-slate-100 p-4 mb-3" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 }}>
@@ -587,7 +634,84 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
                     )}
                   </View>
 
-                  {prod ? (
+                  {/* Type toggle */}
+                  <View className="flex-row items-center bg-slate-100 rounded-xl p-1 mb-3">
+                    <Pressable
+                      onPress={() => setItemType(idx, "product")}
+                      className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2 ${!isService ? "bg-white" : ""}`}
+                      style={!isService ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 } : undefined}
+                    >
+                      <MaterialIcons name="inventory-2" size={13} color={!isService ? "#0F172A" : "#94A3B8"} />
+                      <Text className={`text-[12px] font-bold ${!isService ? "text-slate-900" : "text-slate-500"}`}>Product</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setItemType(idx, "service")}
+                      className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2 ${isService ? "bg-white" : ""}`}
+                      style={isService ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 } : undefined}
+                    >
+                      <MaterialIcons name="build" size={13} color={isService ? "#0F172A" : "#94A3B8"} />
+                      <Text className={`text-[12px] font-bold ${isService ? "text-slate-900" : "text-slate-500"}`}>Service</Text>
+                    </Pressable>
+                  </View>
+
+                  {isService ? (
+                    svc ? (
+                      <View className="flex-row items-center bg-slate-900 rounded-xl px-4 py-3 mb-3">
+                        <View className="h-8 w-8 rounded-lg bg-indigo-500/25 items-center justify-center mr-3">
+                          <MaterialIcons name="build" size={14} color="#A5B4FC" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-white text-[14px] font-semibold">{svc.name}</Text>
+                          <Text className="text-slate-400 text-[10px] mt-0.5">
+                            {svc.code ?? svc.category ?? "Service"}
+                            {svc.durationMinutes ? ` · ${svc.durationMinutes} min` : ""}
+                          </Text>
+                        </View>
+                        <Pressable onPress={() => updateItem(idx, { serviceId: "", price: "0" })}>
+                          <MaterialIcons name="close" size={18} color="#94A3B8" />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <>
+                        <View className="flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 gap-2 mb-3">
+                          <MaterialIcons name="search" size={17} color="#94A3B8" />
+                          <TextInput
+                            value={serviceSearch}
+                            onChangeText={setServiceSearch}
+                            placeholder="Search service…"
+                            placeholderTextColor="#CBD5E1"
+                            className="flex-1 text-[14px] text-slate-900"
+                          />
+                        </View>
+                        {filteredServices.length > 0 ? (
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            <View className="flex-row gap-2 mb-1">
+                              {filteredServices.slice(0, 20).map((s) => (
+                                <Pressable
+                                  key={s.id}
+                                  onPress={() => updateItem(idx, { serviceId: s.id })}
+                                  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 items-center"
+                                >
+                                  <Text className="text-[13px] font-semibold text-slate-700">{s.name}</Text>
+                                  <Text className="text-[10px] text-slate-400 mt-0.5">
+                                    ₹{s.price}
+                                    {s.durationMinutes ? ` · ${s.durationMinutes} min` : ""}
+                                  </Text>
+                                </Pressable>
+                              ))}
+                            </View>
+                          </ScrollView>
+                        ) : (
+                          <View className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 mb-1 flex-row items-center gap-2">
+                            <MaterialIcons name="info-outline" size={15} color="#6366F1" />
+                            <Text className="text-[12px] text-indigo-700 flex-1">
+                              No services found. Add one in Inventory → Services.
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    )
+                  ) : prod ? (
                     <View className="flex-row items-center bg-slate-900 rounded-xl px-4 py-3 mb-3">
                       <View className="h-8 w-8 rounded-lg bg-amber-500/25 items-center justify-center mr-3">
                         <MaterialIcons name="inventory-2" size={14} color="#FBBF24" />
@@ -645,9 +769,23 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
               );
             })}
 
-            <Pressable onPress={() => setItems([...items, { productId: "", quantity: "1", price: "0" }])} className="border-2 border-dashed border-slate-200 rounded-2xl py-4 items-center mb-5 flex-row justify-center gap-2">
+            <Pressable
+              onPress={() =>
+                setItems([
+                  ...items,
+                  {
+                    itemType: "product",
+                    productId: "",
+                    serviceId: "",
+                    quantity: "1",
+                    price: "0",
+                  },
+                ])
+              }
+              className="border-2 border-dashed border-slate-200 rounded-2xl py-4 items-center mb-5 flex-row justify-center gap-2"
+            >
               <MaterialIcons name="add-circle-outline" size={20} color="#6366F1" />
-              <Text className="text-[14px] font-semibold text-indigo-600">Add Another Product</Text>
+              <Text className="text-[14px] font-semibold text-indigo-600">Add Another Item</Text>
             </Pressable>
           </Animated.View>
 
@@ -708,17 +846,31 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
 
           {/* ── Submit ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(400)}>
-            <Pressable
-              onPress={handleSubmit}
-              disabled={loading || !customerId}
-              android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
-              className={`flex-row items-center justify-center gap-2.5 rounded-2xl ${loading || !customerId ? "bg-slate-300" : "bg-slate-900"}`}
-              style={{ paddingVertical: 18, shadowColor: "#0F172A", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6 }}
-            >
-              <MaterialIcons name="check-circle" size={20} color="#fff" />
-              <Text className="text-[16px] font-bold text-white">Create Sale</Text>
-            </Pressable>
-            {!customerId && <Text className="text-center text-[11px] text-slate-400 mt-2">Select a customer to continue</Text>}
+            {(() => {
+              const allItemsFilled = items.every((i) =>
+                i.itemType === "service" ? Boolean(i.serviceId) : Boolean(i.productId),
+              );
+              const disabled = loading || !customerId || !allItemsFilled;
+              return (
+                <>
+                  <Pressable
+                    onPress={handleSubmit}
+                    disabled={disabled}
+                    android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
+                    className={`flex-row items-center justify-center gap-2.5 rounded-2xl ${disabled ? "bg-slate-300" : "bg-slate-900"}`}
+                    style={{ paddingVertical: 18, shadowColor: "#0F172A", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 6 }}
+                  >
+                    <MaterialIcons name="check-circle" size={20} color="#fff" />
+                    <Text className="text-[16px] font-bold text-white">Create Sale</Text>
+                  </Pressable>
+                  {!customerId ? (
+                    <Text className="text-center text-[11px] text-slate-400 mt-2">Select a customer to continue</Text>
+                  ) : !allItemsFilled ? (
+                    <Text className="text-center text-[11px] text-slate-400 mt-2">Pick a product or service for each line</Text>
+                  ) : null}
+                </>
+              );
+            })()}
           </Animated.View>
 
         </ScrollView>

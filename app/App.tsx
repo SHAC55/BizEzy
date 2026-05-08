@@ -21,6 +21,7 @@ import { MainTabs } from "./src/components/MainTabs";
 import { AuthPage } from "./src/pages/AuthPage";
 import { AddCustomerPage } from "./src/pages/AddCustomerPage";
 import { AddInventoryPage } from "./src/pages/AddInventoryPage";
+import { AddServicePage } from "./src/pages/AddServicePage";
 import { AddSalePage } from "./src/pages/AddSalePage";
 import { CustomerDetailPage } from "./src/pages/CustomerDetailPage";
 import { LoadingPage } from "./src/pages/LoadingPage";
@@ -42,6 +43,7 @@ const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       MainTabs: "home",
       AddInventory: "inventory/form/:productId?",
+      AddService: "services/form/:serviceId?",
       ProductDetail: "inventory/product/:productId",
       AddSale: "sales/new",
       SaleDetail: "sales/detail/:saleId",
@@ -72,9 +74,11 @@ const MainTabsScreen = ({ navigation }: ScreenProps<"MainTabs">) => {
     <MainTabs
       session={session}
       onOpenProduct={(productId) => navigation.navigate("ProductDetail", { productId })}
+      onOpenService={(serviceId) => navigation.navigate("AddService", { serviceId })}
       onOpenSale={(saleId) => navigation.navigate("SaleDetail", { saleId })}
       onOpenCustomer={(customerId) => navigation.navigate("CustomerDetail", { customerId })}
       onOpenAddInventory={() => navigation.navigate("AddInventory")}
+      onOpenAddService={() => navigation.navigate("AddService")}
       onOpenAddSale={() => navigation.navigate("AddSale")}
       onOpenAddCustomer={() => navigation.navigate("AddCustomer")}
       onOpenReminders={() => navigation.navigate("Reminders")}
@@ -96,6 +100,15 @@ const AddInventoryScreen = ({ navigation, route }: ScreenProps<"AddInventory">) 
     onNavigate={() => {}}
     onRequestClose={() => navigation.goBack()}
     presentation="screen"
+  />
+);
+
+const AddServiceScreen = ({ navigation, route }: ScreenProps<"AddService">) => (
+  <AddServicePage
+    serviceId={route.params?.serviceId}
+    onBack={() => navigation.goBack()}
+    onCreated={() => navigation.goBack()}
+    onNavigate={() => {}}
   />
 );
 
@@ -179,6 +192,7 @@ const AppNavigator = () => (
         options={{ animation: "none" }}
       />
       <Stack.Screen name="AddInventory" component={AddInventoryScreen} />
+      <Stack.Screen name="AddService" component={AddServiceScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="AddSale" component={AddSaleScreen} />
       <Stack.Screen name="SaleDetail" component={SaleDetailScreen} />

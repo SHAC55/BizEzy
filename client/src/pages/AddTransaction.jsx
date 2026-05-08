@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Calculator,
   Check,
+  Clock,
   DollarSign,
   Loader2,
   Package,
@@ -14,6 +15,7 @@ import {
   User,
   UserPlus,
   Search,
+  Wrench,
   X,
   Tag,
   TrendingUp,
@@ -22,6 +24,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useCustomers, useCreateCustomer } from "../hooks/useCustomers";
 import { useProducts } from "../hooks/useProducts";
+import { useServices } from "../hooks/useServices";
 import { useCreateSale } from "../hooks/useSales";
 
 const formatCurrency = (value) =>
@@ -46,6 +49,10 @@ const AddTransaction = () => {
     page: 1,
     limit: 100,
   });
+  const { services = [], isLoading: servicesLoading } = useServices({
+    page: 1,
+    limit: 100,
+  });
   const { customers = [], isLoading: customersLoading } = useCustomers({
     search: customerSearch,
     page: 1,
@@ -63,7 +70,15 @@ const AddTransaction = () => {
   } = useForm({
     defaultValues: {
       customerId: "",
-      items: [{ productId: "", quantity: 1, unitPrice: 0 }],
+      items: [
+        {
+          itemType: "product",
+          productId: "",
+          serviceId: "",
+          quantity: 1,
+          unitPrice: 0,
+        },
+      ],
       discountAmount: 0,
       gstRate: 18,
       paidAmount: 0,
@@ -127,10 +142,14 @@ const AddTransaction = () => {
     () =>
       watchedItems.reduce((sum, item) => {
         const qty = Number(item?.quantity) || 0;
+        if (item?.itemType === "service") {
+          const service = services.find((s) => s.id === item?.serviceId);
+          return round2(sum + qty * Number(service?.costPrice || 0));
+        }
         const product = products.find((p) => p.id === item?.productId);
         return round2(sum + qty * Number(product?.costPrice || 0));
       }, 0),
-    [JSON.stringify(watchedItems), products], // <-- KEY FIX
+    [JSON.stringify(watchedItems), products, services], // <-- KEY FIX
   );
 
   const estimatedProfit = round2(taxableAmount - estimatedCostAmount);
@@ -164,6 +183,37 @@ const AddTransaction = () => {
       shouldDirty: true,
     });
     setValue(`items.${index}.unitPrice`, product?.price ?? 0, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const handleServiceChange = (index, serviceId) => {
+    const service = services.find((s) => s.id === serviceId);
+    setValue(`items.${index}.serviceId`, serviceId, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue(`items.${index}.unitPrice`, service?.price ?? 0, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const handleItemTypeChange = (index, nextType) => {
+    setValue(`items.${index}.itemType`, nextType, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue(`items.${index}.productId`, "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue(`items.${index}.serviceId`, "", {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue(`items.${index}.unitPrice`, 0, {
       shouldValidate: true,
       shouldDirty: true,
     });
@@ -222,11 +272,15 @@ const AddTransaction = () => {
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const onSubmit = async (formData) => {
-    const items = watchedItems.map((item) => ({
-      productId: item.productId,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-    }));
+    const items = watchedItems.map((item) => {
+      const base = {
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+      };
+      return item.itemType === "service"
+        ? { ...base, serviceId: item.serviceId }
+        : { ...base, productId: item.productId };
+    });
 
     const sub = round2(
       items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
@@ -257,7 +311,15 @@ const AddTransaction = () => {
       const response = await createSale(payload);
       reset({
         customerId: "",
-        items: [{ productId: "", quantity: 1, unitPrice: 0 }],
+        items: [
+        {
+          itemType: "product",
+          productId: "",
+          serviceId: "",
+          quantity: 1,
+          unitPrice: 0,
+        },
+      ],
         discountAmount: 0,
         gstRate: 18,
         paidAmount: 0,
@@ -292,8 +354,10 @@ const AddTransaction = () => {
     },
   };
 
-  // ── Live items (only those with a product selected) ───────────────────────
-  const filledItems = watchedItems.filter((i) => i.productId);
+  // ── Live items (only those with a product or service selected) ───────────
+  const filledItems = watchedItems.filter(
+    (i) => (i?.itemType === "service" ? i.serviceId : i.productId),
+  );
 
   return (
     <div className="min-h-screen w-full bg-white px-4 py-8 md:ml-20">
@@ -524,30 +588,40 @@ const AddTransaction = () => {
                 </div>
               </section>
 
-              {/* ── Products ── */}
+              {/* ── Products & Services ── */}
               <section className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <Package className="h-4 w-4 text-gray-700" />
-                    Products
+                    Items
                   </div>
                   <button
                     type="button"
                     onClick={() =>
-                      append({ productId: "", quantity: 1, unitPrice: 0 })
+                      append({
+                        itemType: "product",
+                        productId: "",
+                        serviceId: "",
+                        quantity: 1,
+                        unitPrice: 0,
+                      })
                     }
                     className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 hover:border-gray-400"
                   >
                     <Plus className="h-4 w-4" />
-                    Add product
+                    Add item
                   </button>
                 </div>
 
                 <div className="space-y-4">
                   {fields.map((field, index) => {
                     const currentItem = watchedItems[index] || {};
+                    const isService = currentItem?.itemType === "service";
                     const selectedProduct = products.find(
                       (p) => p.id === currentItem?.productId,
+                    );
+                    const selectedService = services.find(
+                      (s) => s.id === currentItem?.serviceId,
                     );
                     const lineQty = Number(currentItem?.quantity) || 0;
                     const linePrice = Number(currentItem?.unitPrice) || 0;
@@ -558,10 +632,42 @@ const AddTransaction = () => {
                         key={field.id}
                         className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                       >
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-gray-700">
-                            Item {index + 1}
-                          </p>
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <p className="text-sm font-semibold text-gray-700">
+                              Item {index + 1}
+                            </p>
+                            <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-0.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleItemTypeChange(index, "product")
+                                }
+                                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                                  !isService
+                                    ? "bg-black text-white"
+                                    : "text-gray-500 hover:text-gray-900"
+                                }`}
+                              >
+                                <Package className="h-3 w-3" />
+                                Product
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleItemTypeChange(index, "service")
+                                }
+                                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
+                                  isService
+                                    ? "bg-black text-white"
+                                    : "text-gray-500 hover:text-gray-900"
+                                }`}
+                              >
+                                <Wrench className="h-3 w-3" />
+                                Service
+                              </button>
+                            </div>
+                          </div>
                           {fields.length > 1 && (
                             <button
                               type="button"
@@ -575,47 +681,107 @@ const AddTransaction = () => {
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-[minmax(0,1.5fr)_120px_150px]">
-                          {/* Product select */}
+                          {/* Product / Service select */}
                           <div>
                             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                              Product
+                              {isService ? "Service" : "Product"}
                             </label>
-                            <Controller
-                              control={control}
-                              name={`items.${index}.productId`}
-                              rules={{ required: "Choose a product" }}
-                              render={({ field: f }) => (
-                                <select
-                                  value={f.value}
-                                  onChange={(e) => {
-                                    handleProductChange(index, e.target.value);
-                                  }}
-                                  disabled={productsLoading}
-                                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-gray-500 focus:ring-1 focus:ring-gray-200 disabled:cursor-not-allowed disabled:bg-gray-100"
-                                >
-                                  <option value="">
-                                    {productsLoading
-                                      ? "Loading products..."
-                                      : "Choose a product"}
-                                  </option>
-                                  {products.map((product) => (
-                                    <option key={product.id} value={product.id}>
-                                      {product.name} ·{" "}
-                                      {formatCurrency(product.price)}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                            />
-                            {errors.items?.[index]?.productId && (
-                              <p className="mt-2 text-xs text-red-500">
-                                {errors.items[index].productId.message}
-                              </p>
-                            )}
-                            {selectedProduct && (
-                              <p className="mt-2 text-xs text-gray-500">
-                                Stock: {selectedProduct.quantity ?? 0} available
-                              </p>
+                            {isService ? (
+                              <>
+                                <Controller
+                                  control={control}
+                                  name={`items.${index}.serviceId`}
+                                  rules={{ required: "Choose a service" }}
+                                  render={({ field: f }) => (
+                                    <select
+                                      value={f.value}
+                                      onChange={(e) =>
+                                        handleServiceChange(
+                                          index,
+                                          e.target.value,
+                                        )
+                                      }
+                                      disabled={servicesLoading}
+                                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-gray-500 focus:ring-1 focus:ring-gray-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                                    >
+                                      <option value="">
+                                        {servicesLoading
+                                          ? "Loading services..."
+                                          : services.length === 0
+                                            ? "No services yet — add one first"
+                                            : "Choose a service"}
+                                      </option>
+                                      {services.map((service) => (
+                                        <option
+                                          key={service.id}
+                                          value={service.id}
+                                        >
+                                          {service.name} ·{" "}
+                                          {formatCurrency(service.price)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                />
+                                {errors.items?.[index]?.serviceId && (
+                                  <p className="mt-2 text-xs text-red-500">
+                                    {errors.items[index].serviceId.message}
+                                  </p>
+                                )}
+                                {selectedService?.durationMinutes ? (
+                                  <p className="mt-2 inline-flex items-center gap-1 text-xs text-gray-500">
+                                    <Clock className="h-3 w-3" />
+                                    {selectedService.durationMinutes} min
+                                  </p>
+                                ) : null}
+                              </>
+                            ) : (
+                              <>
+                                <Controller
+                                  control={control}
+                                  name={`items.${index}.productId`}
+                                  rules={{ required: "Choose a product" }}
+                                  render={({ field: f }) => (
+                                    <select
+                                      value={f.value}
+                                      onChange={(e) => {
+                                        handleProductChange(
+                                          index,
+                                          e.target.value,
+                                        );
+                                      }}
+                                      disabled={productsLoading}
+                                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-all focus:border-gray-500 focus:ring-1 focus:ring-gray-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                                    >
+                                      <option value="">
+                                        {productsLoading
+                                          ? "Loading products..."
+                                          : "Choose a product"}
+                                      </option>
+                                      {products.map((product) => (
+                                        <option
+                                          key={product.id}
+                                          value={product.id}
+                                        >
+                                          {product.name} ·{" "}
+                                          {formatCurrency(product.price)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                />
+                                {errors.items?.[index]?.productId && (
+                                  <p className="mt-2 text-xs text-red-500">
+                                    {errors.items[index].productId.message}
+                                  </p>
+                                )}
+                                {selectedProduct && (
+                                  <p className="mt-2 text-xs text-gray-500">
+                                    Stock: {selectedProduct.quantity ?? 0}{" "}
+                                    available
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
 
@@ -977,18 +1143,21 @@ const AddTransaction = () => {
                     <div className="px-5 py-8 text-center">
                       <Package className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                       <p className="text-xs text-gray-400">
-                        No products added yet
+                        No items added yet
                       </p>
                     </div>
                   ) : (
                     watchedItems.map((item, index) => {
-                      if (!item.productId) return null;
-                      const product = products.find(
-                        (p) => p.id === item.productId,
-                      );
+                      const isService = item?.itemType === "service";
+                      const id = isService ? item.serviceId : item.productId;
+                      if (!id) return null;
+                      const record = isService
+                        ? services.find((s) => s.id === id)
+                        : products.find((p) => p.id === id);
                       const qty = Number(item.quantity) || 0;
                       const price = Number(item.unitPrice) || 0;
                       const lineTotal = round2(qty * price);
+                      const Icon = isService ? Wrench : Package;
                       return (
                         <div
                           key={index}
@@ -996,13 +1165,14 @@ const AddTransaction = () => {
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                              <Package className="h-4 w-4 text-gray-500" />
+                              <Icon className="h-4 w-4 text-gray-500" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">
-                                {product?.name || "Unknown"}
+                                {record?.name || "Unknown"}
                               </p>
                               <p className="text-xs text-gray-500 mt-0.5">
+                                {isService ? "Service · " : ""}
                                 {qty} × {formatCurrency(price)}
                               </p>
                             </div>

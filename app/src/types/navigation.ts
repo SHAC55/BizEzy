@@ -9,6 +9,7 @@ export type AppRoute =
 export type RootStackParamList = {
   MainTabs: undefined;
   AddInventory: { productId?: string } | undefined;
+  AddService: { serviceId?: string } | undefined;
   ProductDetail: { productId: string };
   AddSale: undefined;
   SaleDetail: { saleId: string };

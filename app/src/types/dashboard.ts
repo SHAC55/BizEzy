@@ -68,7 +68,8 @@ export type DashboardSale = {
 export type CreateSalePayload = {
   customerId: string;
   items: Array<{
-    productId: string;
+    productId?: string;
+    serviceId?: string;
     quantity: number;
     unitPrice: number;
   }>;
