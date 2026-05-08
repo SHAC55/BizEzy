@@ -20,3 +20,10 @@ export const saleKeys = {
   list: (params) => [...saleKeys.lists(), params],
   detail: (saleId) => [...saleKeys.all, "detail", saleId],
 };
+
+export const serviceKeys = {
+  all: ["services"],
+  lists: () => [...serviceKeys.all, "list"],
+  list: (params) => [...serviceKeys.lists(), params],
+  detail: (serviceId) => [...serviceKeys.all, "detail", serviceId],
+};
