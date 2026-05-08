@@ -3,13 +3,16 @@ import { useFieldArray, useForm, Controller } from "react-hook-form";
 import {
   ArrowLeft,
   Calculator,
+  Check,
   DollarSign,
   Loader2,
   Package,
+  Phone,
   Plus,
   ShoppingCart,
   Trash2,
   User,
+  UserPlus,
   Search,
   X,
   Tag,
@@ -17,7 +20,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useCustomers } from "../hooks/useCustomers";
+import { useCustomers, useCreateCustomer } from "../hooks/useCustomers";
 import { useProducts } from "../hooks/useProducts";
 import { useCreateSale } from "../hooks/useSales";
 
@@ -33,8 +36,12 @@ const AddTransaction = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerMobile, setNewCustomerMobile] = useState("");
 
   const { createSale, isLoading: isCreatingSale } = useCreateSale();
+  const { createCustomer, isLoading: isCreatingCustomer } = useCreateCustomer();
   const { products = [], isLoading: productsLoading } = useProducts({
     page: 1,
     limit: 100,
@@ -169,6 +176,40 @@ const AddTransaction = () => {
     });
     setCustomerSearch("");
     setShowCustomerDropdown(false);
+    setShowQuickAdd(false);
+  };
+
+  const openQuickAdd = (prefillName = "") => {
+    setNewCustomerName(prefillName);
+    setNewCustomerMobile("");
+    setShowQuickAdd(true);
+    setShowCustomerDropdown(false);
+  };
+
+  const closeQuickAdd = () => {
+    setShowQuickAdd(false);
+    setNewCustomerName("");
+    setNewCustomerMobile("");
+  };
+
+  const handleQuickAddCustomer = async () => {
+    const name = newCustomerName.trim();
+    const mobile = newCustomerMobile.trim();
+    if (!name || !mobile) return;
+    try {
+      const result = await createCustomer({ name, mobile });
+      const newId = result?.customer?.id ?? result?.id;
+      if (newId) {
+        setValue("customerId", newId, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+      setCustomerSearch("");
+      closeQuickAdd();
+    } catch (err) {
+      console.error("Customer creation failed:", err?.response?.data || err);
+    }
   };
 
   const filteredCustomers = useMemo(() => {
@@ -330,28 +371,120 @@ const AddTransaction = () => {
                             <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
                           </div>
                         ) : filteredCustomers.length > 0 ? (
-                          filteredCustomers.map((customer) => (
+                          <>
+                            {filteredCustomers.map((customer) => (
+                              <button
+                                key={customer.id}
+                                type="button"
+                                onMouseDown={() =>
+                                  handleCustomerSelect(customer.id)
+                                }
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+                              >
+                                <p className="font-medium text-gray-900">
+                                  {customer.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {customer.mobile}
+                                </p>
+                              </button>
+                            ))}
                             <button
-                              key={customer.id}
                               type="button"
                               onMouseDown={() =>
-                                handleCustomerSelect(customer.id)
+                                openQuickAdd(customerSearch.trim())
                               }
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
+                              className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors"
                             >
-                              <p className="font-medium text-gray-900">
-                                {customer.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {customer.mobile}
-                              </p>
+                              <UserPlus className="h-4 w-4 text-gray-700" />
+                              Add new customer
                             </button>
-                          ))
+                          </>
                         ) : (
-                          <div className="p-4 text-center text-sm text-gray-500">
-                            No customers found
-                          </div>
+                          <button
+                            type="button"
+                            onMouseDown={() =>
+                              openQuickAdd(customerSearch.trim())
+                            }
+                            className="flex w-full items-start gap-3 p-4 text-left hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
+                              <UserPlus className="h-4 w-4 text-gray-700" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-gray-900">
+                                No customer found
+                              </p>
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                Tap to add &ldquo;{customerSearch.trim()}&rdquo;
+                                as a new customer
+                              </p>
+                            </div>
+                          </button>
                         )}
+                      </div>
+                    )}
+
+                    {showQuickAdd && (
+                      <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                            <UserPlus className="h-4 w-4 text-gray-700" />
+                            Add new customer
+                          </div>
+                          <button
+                            type="button"
+                            onClick={closeQuickAdd}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              value={newCustomerName}
+                              onChange={(e) =>
+                                setNewCustomerName(e.target.value)
+                              }
+                              placeholder="Customer name"
+                              className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none transition-all focus:border-gray-500 focus:ring-1 focus:ring-gray-200"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="tel"
+                              value={newCustomerMobile}
+                              onChange={(e) =>
+                                setNewCustomerMobile(e.target.value)
+                              }
+                              placeholder="Mobile number"
+                              className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none transition-all focus:border-gray-500 focus:ring-1 focus:ring-gray-200"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleQuickAddCustomer}
+                            disabled={
+                              isCreatingCustomer ||
+                              !newCustomerName.trim() ||
+                              !newCustomerMobile.trim()
+                            }
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isCreatingCustomer ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                            {isCreatingCustomer
+                              ? "Adding…"
+                              : "Create & Select"}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
