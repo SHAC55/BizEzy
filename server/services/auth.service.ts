@@ -31,13 +31,21 @@ import {
 } from "../utils/emailTemplates";
 
 export type createAccountParams = {
+<<<<<<< HEAD
   email: string;
+=======
+  businessName: string;
+  username: string;
+  email?: string;
+  phone: string;
+>>>>>>> dev
   password: string;
   userAgent?: string;
 };
 
 export const createAccount = async (data: createAccountParams) => {
   const userExists = await prisma.user.findUnique({
+<<<<<<< HEAD
     where: { email: data.email },
   });
   //  if (userExists) {
@@ -70,6 +78,46 @@ export const createAccount = async (data: createAccountParams) => {
     to: user.email,
     ...getVerifyEmailTemplate(url),
   });
+=======
+    where: { mobile: data.phone },
+  });
+  appAssert(!userExists, 409, "phone number already in use");
+
+  const hashedPassword = await hashValue(data.password);
+
+  const user = await prisma.user.create({
+    data: {
+      name: data.username,
+      mobile: data.phone,
+      email: data.email,
+      password: hashedPassword,
+      business: {
+        create: {
+          name: data.businessName,
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      mobile: true,
+      email: true,
+      provider: true,
+      verified: true,
+      createdAt: true,
+      updatedAt: true,
+      business: {
+        select: {
+          id: true,
+          name: true,
+          gstNumber: true,
+          address: true,
+        },
+      },
+    },
+  });
+
+>>>>>>> dev
   const session = await prisma.session.create({
     data: {
       userId: user.id,
@@ -77,6 +125,10 @@ export const createAccount = async (data: createAccountParams) => {
       expiresAt: thirtyDaysFromNow(),
     },
   });
+<<<<<<< HEAD
+=======
+
+>>>>>>> dev
   const refreshToken = signToken(
     { sessionId: session.id },
     refreshTokenSignOptions,
@@ -85,6 +137,7 @@ export const createAccount = async (data: createAccountParams) => {
     userId: user.id,
     sessionId: session.id,
   });
+<<<<<<< HEAD
   return {
     user,
     accessToken,
@@ -109,10 +162,35 @@ export const loginUser = async (data: LoginParams) => {
   const session = await prisma.session.create({
     data: {
       userId,
+=======
+
+  return { user, accessToken, refreshToken };
+};
+
+export type LoginParams = {
+  username: string;
+  password: string;
+  userAgent?: string;
+};
+
+export const loginUser = async (data: LoginParams) => {
+  const user = await prisma.user.findFirst({
+    where: { name: data.username },
+  });
+  appAssert(user, UNAUTHORIZED, "invalid username");
+
+  const isValid = await comparePassword(user, data.password);
+  appAssert(isValid, UNAUTHORIZED, "invalid password");
+
+  const session = await prisma.session.create({
+    data: {
+      userId: user.id,
+>>>>>>> dev
       userAgent: data.userAgent,
       expiresAt: thirtyDaysFromNow(),
     },
   });
+<<<<<<< HEAD
   const sessionInfo = {
     sessionId: session.id,
   };
@@ -138,6 +216,110 @@ export const loginUser = async (data: LoginParams) => {
     accessToken,
     refreshToken,
   };
+=======
+
+  const refreshToken = signToken(
+    { sessionId: session.id },
+    refreshTokenSignOptions,
+  );
+  const accessToken = signToken({
+    userId: user.id,
+    sessionId: session.id,
+  });
+
+  const safeUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      id: true,
+      name: true,
+      mobile: true,
+      email: true,
+      provider: true,
+      verified: true,
+      createdAt: true,
+      updatedAt: true,
+      business: {
+        select: {
+          id: true,
+          name: true,
+          gstNumber: true,
+          address: true,
+        },
+      },
+    },
+  });
+
+  return { safeUser, accessToken, refreshToken };
+};
+
+export type GoogleAuthParams = {
+  email: string;
+  name: string;
+  provider: string;
+  userAgent?: string;
+};
+export const googleAuth = async (data: GoogleAuthParams) => {
+  let user = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: data.email ?? null,
+        name: null, // ?? leave null - user will fill in onboarding
+        mobile: null, // ?? leave null - user will fill in onboarding
+        provider: data.provider,
+        verified: true,
+      },
+    });
+  }
+
+  const session = await prisma.session.create({
+    data: {
+      userId: user.id,
+      userAgent: data.userAgent,
+      expiresAt: thirtyDaysFromNow(),
+    },
+  });
+
+  const refreshToken = signToken(
+    { sessionId: session.id },
+    refreshTokenSignOptions,
+  );
+  const accessToken = signToken({
+    userId: user.id,
+    sessionId: session.id,
+  });
+
+  // if mobile and name are missing, onboarding is needed
+  const isOnboardingComplete = !!(user.mobile && user.name);
+
+  return { accessToken, refreshToken, isOnboardingComplete };
+};
+export type OnboardingParams = {
+  userId: number;
+  phone: string;
+  username: string;
+  businessName: string;
+};
+
+export const completeOnboarding = async (data: OnboardingParams) => {
+  const user = await prisma.user.update({
+    where: { id: data.userId },
+    data: {
+      mobile: data.phone,
+      name: data.username,
+      business: {
+        create: {
+          name: data.businessName,
+        },
+      },
+    },
+  });
+  appAssert(user, INTERNAL_SERVER_ERROR, "failed to complete onboarding");
+  return user;
+>>>>>>> dev
 };
 export const refreshUserAccessToken = async (refreshToken: string) => {
   const { payload } = verifyToken<RefreshTokenPayload>(refreshToken, {
@@ -253,7 +435,12 @@ export const sendPasswordResetEmail = async (email: string) => {
       expiresAt,
     },
   });
+<<<<<<< HEAD
   const url = `/${APP_ORIGIN}/password/reset?code=${verificationCode.id}&exp=${expiresAt.getTime()}`;
+=======
+  const url = `${APP_ORIGIN}/password/reset?code=${verificationCode.id}&exp=${expiresAt.getTime()}`;
+  appAssert(user.email, NOT_FOUND, "please check your email");
+>>>>>>> dev
 
   await sendMail({
     to: user.email,

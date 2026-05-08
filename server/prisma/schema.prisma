@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // This is your Prisma schema file,
+=======
+//  This is your Prisma schema file,
+>>>>>>> dev
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
@@ -25,6 +29,7 @@ enum VerificationCodeType {
 // User
 //////////////////////
 
+<<<<<<< HEAD
 model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique
@@ -41,12 +46,46 @@ model User {
   verificationCodes VerificationCode[]
 
   business Business?
+=======
+enum VerificationCodeType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum InventoryMovementType {
+  INITIAL
+  INCREASE
+  DECREASE
+  SET
+}
+
+//////////////////////
+// User
+//////////////////////
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String?   @unique
+  password  String?
+  verified  Boolean  @default(false)
+  mobile    String?   @unique
+  email     String?  @unique
+  provider  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions          Session[]
+  verificationCodes VerificationCode[]
+  business          Business?
+>>>>>>> dev
 }
 
 //////////////////////
 // Session
 //////////////////////
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 model Session {
   id        Int      @id @default(autoincrement())
   userId    Int
@@ -62,7 +101,10 @@ model Session {
 //////////////////////
 // Verification Code
 //////////////////////
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 model VerificationCode {
   id        String               @id @default(cuid())
   userId    Int
@@ -79,6 +121,7 @@ model VerificationCode {
 //////////////////////
 // Business
 //////////////////////
+<<<<<<< HEAD
 
 model Business {
   id        String   @id @default(uuid())
@@ -90,11 +133,26 @@ model Business {
   sales     Sale[]
 
   createdAt DateTime @default(now())
+=======
+model Business {
+  id        String   @id @default(uuid())
+  name      String
+  gstNumber String?  @unique
+  address   String?
+  ownerId   Int      @unique
+  createdAt DateTime @default(now())
+
+  owner     User       @relation(fields: [ownerId], references: [id])
+  customers Customer[]
+  products  Product[]
+  sales     Sale[]
+>>>>>>> dev
 }
 
 //////////////////////
 // Customer
 //////////////////////
+<<<<<<< HEAD
 
 model Customer {
   id         String   @id @default(uuid())
@@ -108,6 +166,22 @@ model Customer {
   sales      Sale[]
 
   createdAt  DateTime @default(now())
+=======
+model Customer {
+  id             String   @id @default(uuid())
+  name           String
+  mobile         String
+  email          String?
+  address        String?
+  notes          String?
+  openingBalance Float    @default(0)
+  archivedAt     DateTime?
+  businessId     String
+  createdAt      DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id])
+  sales    Sale[]
+>>>>>>> dev
 
   @@index([businessId])
 }
@@ -115,11 +189,15 @@ model Customer {
 //////////////////////
 // Sale
 //////////////////////
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 model Sale {
   id          String   @id @default(uuid())
   businessId  String
   customerId  String
+<<<<<<< HEAD
   totalAmount Float
   createdAt   DateTime @default(now())
 
@@ -127,6 +205,20 @@ model Sale {
   customer Customer @relation(fields: [customerId], references: [id])
 
   invoice  Invoice?
+=======
+  subtotalAmount Float
+  discountAmount Float @default(0)
+  gstRate     Float @default(0)
+  gstAmount   Float @default(0)
+  totalAmount Float
+  reminderDate DateTime?
+  createdAt   DateTime @default(now())
+
+  business Business  @relation(fields: [businessId], references: [id])
+  customer Customer  @relation(fields: [customerId], references: [id])
+  invoice  Invoice?
+  items    SaleItem[]
+>>>>>>> dev
   payments Payment[]
 
   @@index([businessId])
@@ -134,9 +226,33 @@ model Sale {
 }
 
 //////////////////////
+<<<<<<< HEAD
 // Invoice
 //////////////////////
 
+=======
+// Sale Item
+//////////////////////
+model SaleItem {
+  id          String   @id @default(uuid())
+  saleId      String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  totalAmount Float
+  createdAt   DateTime @default(now())
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+//////////////////////
+// Invoice
+//////////////////////
+>>>>>>> dev
 model Invoice {
   id        String   @id @default(uuid())
   saleId    String   @unique
@@ -149,7 +265,10 @@ model Invoice {
 //////////////////////
 // Payment
 //////////////////////
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 model Payment {
   id        String   @id @default(uuid())
   saleId    String
@@ -159,4 +278,55 @@ model Payment {
   sale Sale @relation(fields: [saleId], references: [id])
 
   @@index([saleId])
+<<<<<<< HEAD
+=======
+}
+
+//////////////////////
+// Product
+//////////////////////
+model Product {
+  id              String   @id @default(uuid())
+  businessId      String
+  name            String
+  category        String
+  costPrice       Float
+  price           Float
+  quantity        Int
+  minimumQuantity Int
+  sku             String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business  Business             @relation(fields: [businessId], references: [id])
+  movements InventoryMovement[]
+  saleItems SaleItem[]
+
+  @@index([businessId])
+  @@unique([businessId, sku])
+}
+
+//////////////////////
+// Inventory Movement
+//////////////////////
+model InventoryMovement {
+  id             String                @id @default(uuid())
+  productId      String
+  businessId     String
+  userId         Int
+  type           InventoryMovementType
+  quantityBefore Int
+  quantityAfter  Int
+  quantityChange Int
+  reason         String
+  notes          String?
+  createdAt      DateTime              @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([businessId])
+  @@index([userId])
+  @@index([createdAt])
+>>>>>>> dev
 }

@@ -1,0 +1,508 @@
+import type { Prisma } from "../generated/prisma/client";
+import { prisma } from "../config/db";
+import { inventoryMovementSelect } from "../constants/inventoryMovement";
+import { CONFLICT, NOT_FOUND } from "../constants/http";
+import { saleDetailSelect, saleListSelect } from "../constants/sale";
+import appAssert from "../utils/appAssert";
+
+export type CreateSaleParams = {
+  userId: number;
+  customerId: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  subtotalAmount: number;
+  discountAmount?: number;
+  gstRate?: number;
+  gstAmount?: number;
+  totalAmount: number;
+  paidAmount?: number;
+  reminderDate?: Date;
+};
+
+export type GetSalesParams = {
+  userId: number;
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: "all" | "paid" | "partial" | "pending";
+};
+
+export type CreateSalePaymentParams = {
+  userId: number;
+  saleId: string;
+  amount: number;
+};
+
+type SaleListItem = Prisma.SaleGetPayload<{
+  select: typeof saleListSelect;
+}>;
+
+type SaleDetailItem = Prisma.SaleGetPayload<{
+  select: typeof saleDetailSelect;
+}>;
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const formatReminderDate = (value: Date | null | undefined) => {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(value);
+};
+
+const getBusinessByOwnerId = async (userId: number) => {
+  const business = await prisma.business.findUnique({
+    where: { ownerId: userId },
+    select: { id: true },
+  });
+  appAssert(business, NOT_FOUND, "business not found");
+  return business;
+};
+
+const getOwnedSale = async (userId: number, saleId: string) => {
+  const business = await getBusinessByOwnerId(userId);
+
+  const sale = await prisma.sale.findFirst({
+    where: {
+      id: saleId,
+      businessId: business.id,
+    },
+    select: {
+      id: true,
+      businessId: true,
+    },
+  });
+  appAssert(sale, NOT_FOUND, "sale not found");
+
+  return sale;
+};
+
+const mapSaleMetrics = (sale: SaleListItem | SaleDetailItem) => {
+  const paidAmount = sale.payments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0,
+  );
+  const subtotalAmount = sale.subtotalAmount;
+  const dueAmount = sale.totalAmount - paidAmount;
+  const discountAmount = sale.discountAmount;
+  const gstRate = sale.gstRate;
+  const gstAmount = sale.gstAmount;
+  const estimatedCostAmount = sale.items.reduce(
+    (sum, item) => sum + item.quantity * (item.product.costPrice ?? 0),
+    0,
+  );
+  const estimatedProfitAmount =
+    subtotalAmount - discountAmount - estimatedCostAmount;
+
+  return {
+    id: sale.id,
+    businessId: sale.businessId,
+    customerId: sale.customerId,
+    totalAmount: sale.totalAmount,
+    business: "business" in sale ? sale.business : undefined,
+    reminderDate: sale.reminderDate,
+    subtotalAmount,
+    discountAmount,
+    gstRate,
+    gstAmount,
+    estimatedCostAmount,
+    estimatedProfitAmount,
+    paidAmount,
+    dueAmount,
+    status:
+      dueAmount <= 0 ? "paid" : paidAmount > 0 ? "partial" : "pending",
+    createdAt: sale.createdAt,
+    customer: sale.customer,
+    items: sale.items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalAmount: item.totalAmount,
+      createdAt: item.createdAt,
+      product: item.product,
+    })),
+    payments: sale.payments,
+  };
+};
+
+const buildSaleReminder = (sale: ReturnType<typeof mapSaleMetrics>) => {
+  if (sale.dueAmount <= 0 || !sale.customer.mobile) {
+    return null;
+  }
+
+  const businessName = "business" in sale && sale.business?.name
+    ? sale.business.name
+    : "your business";
+  const reminderSuffix = sale.reminderDate
+    ? ` on ${formatReminderDate(sale.reminderDate)}`
+    : "";
+  const message = [
+    `Hi ${sale.customer.name},`,
+    `This is a reminder from ${businessName} for invoice #${sale.id.slice(0, 8).toUpperCase()}.`,
+    `Outstanding amount: ${formatCurrency(sale.dueAmount)}.`,
+    sale.reminderDate
+      ? `Requested payment date: ${formatReminderDate(sale.reminderDate)}.`
+      : "Please clear the due amount at your earliest convenience.",
+    "Reply on WhatsApp if you need the invoice copy or payment details.",
+  ].join(" ");
+  const whatsappUrl = `https://wa.me/${sale.customer.mobile.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+
+  return {
+    customerMobile: sale.customer.mobile,
+    scheduledFor: sale.reminderDate,
+    reminderLabel: reminderSuffix
+      ? `Reminder${reminderSuffix}`
+      : "Reminder ready",
+    message,
+    whatsappUrl,
+  };
+};
+
+export const createSale = async (data: CreateSaleParams) => {
+  const business = await getBusinessByOwnerId(data.userId);
+  const paidAmount = data.paidAmount ?? 0;
+  const discountAmount = data.discountAmount ?? 0;
+  const gstRate = data.gstRate ?? 0;
+  const gstAmount = data.gstAmount ?? 0;
+
+  const result = await prisma.$transaction(async (transaction) => {
+    const customer = await transaction.customer.findFirst({
+      where: {
+        id: data.customerId,
+        businessId: business.id,
+        archivedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    appAssert(customer, NOT_FOUND, "customer not found");
+
+    const productIds = data.items.map((item) => item.productId);
+    const products = await transaction.product.findMany({
+      where: {
+        id: {
+          in: productIds,
+        },
+        businessId: business.id,
+      },
+      select: {
+        id: true,
+        businessId: true,
+        name: true,
+        quantity: true,
+        minimumQuantity: true,
+      },
+    });
+
+    appAssert(products.length === data.items.length, NOT_FOUND, "product not found");
+
+    const productMap = new Map(products.map((product) => [product.id, product]));
+
+    data.items.forEach((item) => {
+      const product = productMap.get(item.productId);
+      appAssert(product, NOT_FOUND, "product not found");
+      appAssert(
+        product.quantity >= item.quantity,
+        CONFLICT,
+        `${product.name} does not have enough stock`,
+      );
+    });
+
+    const sale = await transaction.sale.create({
+      data: {
+        businessId: business.id,
+        customerId: customer.id,
+        subtotalAmount: data.subtotalAmount,
+        discountAmount,
+        gstRate,
+        gstAmount,
+        totalAmount: data.totalAmount,
+        reminderDate: data.reminderDate,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await transaction.saleItem.createMany({
+      data: data.items.map((item) => ({
+        saleId: sale.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalAmount: item.quantity * item.unitPrice,
+      })),
+    });
+
+    let lowStockItems: Array<{ name: string; quantity: number; minimumQuantity: number }> = [];
+
+    for (const item of data.items) {
+      const product = productMap.get(item.productId);
+      appAssert(product, NOT_FOUND, "product not found");
+
+      const quantityAfter = product.quantity - item.quantity;
+
+      if (quantityAfter <= product.minimumQuantity) {
+        lowStockItems.push({
+          name: product.name,
+          quantity: quantityAfter,
+          minimumQuantity: product.minimumQuantity,
+        });
+      }
+
+      await transaction.product.update({
+        where: {
+          id: product.id,
+        },
+        data: {
+          quantity: quantityAfter,
+        },
+      });
+
+      await transaction.inventoryMovement.create({
+        data: {
+          productId: product.id,
+          businessId: business.id,
+          userId: data.userId,
+          type: "DECREASE",
+          quantityBefore: product.quantity,
+          quantityAfter,
+          quantityChange: quantityAfter - product.quantity,
+          reason: "sale recorded",
+          notes: `sale ${sale.id.slice(0, 8)}`,
+        },
+        select: inventoryMovementSelect,
+      });
+    }
+
+    if (paidAmount > 0) {
+      await transaction.payment.create({
+        data: {
+          saleId: sale.id,
+          amount: paidAmount,
+        },
+      });
+    }
+
+    return { saleId: sale.id, lowStockItems };
+  });
+
+  const finalSale = await getSaleById(data.userId, result.saleId);
+  return { sale: finalSale, lowStockProducts: result.lowStockItems };
+};
+
+export const getSales = async (data: GetSalesParams) => {
+  const business = await getBusinessByOwnerId(data.userId);
+  const page = data.page ?? 1;
+  const limit = data.limit ?? 10;
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.SaleWhereInput = {
+    businessId: business.id,
+    ...(data.search && {
+      OR: [
+        {
+          customer: {
+            name: {
+              contains: data.search,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          customer: {
+            mobile: {
+              contains: data.search,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          items: {
+            some: {
+              product: {
+                name: {
+                  contains: data.search,
+                  mode: "insensitive",
+                },
+              },
+            },
+          },
+        },
+      ],
+    }),
+  };
+
+  const allMatchingSales = await prisma.sale.findMany({
+    where,
+    select: saleListSelect,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const filteredSales = allMatchingSales
+    .map(mapSaleMetrics)
+    .filter((sale) => {
+      switch (data.status) {
+        case "paid":
+          return sale.status === "paid";
+        case "partial":
+          return sale.status === "partial";
+        case "pending":
+          return sale.status === "pending";
+        case "all":
+        default:
+          return true;
+      }
+    });
+
+  const paginatedSales = filteredSales.slice(skip, skip + limit);
+
+  const now = new Date();
+  const summary = filteredSales.reduce(
+    (accumulator, sale) => {
+      const saleDate = new Date(sale.createdAt);
+      const isToday =
+        saleDate.getFullYear() === now.getFullYear() &&
+        saleDate.getMonth() === now.getMonth() &&
+        saleDate.getDate() === now.getDate();
+      const isCurrentMonth =
+        saleDate.getFullYear() === now.getFullYear() &&
+        saleDate.getMonth() === now.getMonth();
+
+      accumulator.totalSales += 1;
+      accumulator.totalRevenue += sale.paidAmount;
+      accumulator.totalOutstanding += sale.dueAmount;
+      accumulator.totalInvoiced += sale.totalAmount;
+      accumulator.uniqueCustomers.add(sale.customer.id);
+
+      if (isToday) {
+        accumulator.todaySalesAmount += sale.totalAmount;
+        accumulator.todaySalesCount += 1;
+      }
+
+      if (isCurrentMonth) {
+        accumulator.monthlySalesAmount += sale.totalAmount;
+      }
+
+      sale.payments.forEach((payment) => {
+        const paymentDate = new Date(payment.createdAt);
+        const isCurrentPaymentMonth =
+          paymentDate.getFullYear() === now.getFullYear() &&
+          paymentDate.getMonth() === now.getMonth();
+
+        if (isCurrentPaymentMonth) {
+          accumulator.monthlyRevenue += payment.amount;
+        }
+      });
+
+      return accumulator;
+    },
+    {
+      totalSales: 0,
+      totalRevenue: 0,
+      totalOutstanding: 0,
+      totalInvoiced: 0,
+      todaySalesAmount: 0,
+      todaySalesCount: 0,
+      monthlySalesAmount: 0,
+      monthlyRevenue: 0,
+      uniqueCustomers: new Set<string>(),
+    },
+  );
+
+  const filteredTotal = filteredSales.length;
+
+  return {
+    sales: paginatedSales,
+    pagination: {
+      page,
+      limit,
+      total: filteredTotal,
+      totalPages: Math.ceil(filteredTotal / limit),
+    },
+    summary: {
+      totalSales: summary.totalSales,
+      totalRevenue: summary.totalRevenue,
+      totalOutstanding: summary.totalOutstanding,
+      totalInvoiced: summary.totalInvoiced,
+      todaySalesAmount: summary.todaySalesAmount,
+      todaySalesCount: summary.todaySalesCount,
+      monthlySalesAmount: summary.monthlySalesAmount,
+      monthlyRevenue: summary.monthlyRevenue,
+      uniqueCustomers: summary.uniqueCustomers.size,
+    },
+  };
+};
+
+export const getSaleById = async (userId: number, saleId: string) => {
+  const sale = await getOwnedSale(userId, saleId);
+
+  const detail = await prisma.sale.findUnique({
+    where: {
+      id: sale.id,
+    },
+    select: saleDetailSelect,
+  });
+  appAssert(detail, NOT_FOUND, "sale not found");
+
+  return mapSaleMetrics(detail);
+};
+
+export const getSaleReminder = async (userId: number, saleId: string) => {
+  const sale = await getOwnedSale(userId, saleId);
+
+  const detail = await prisma.sale.findUnique({
+    where: { id: sale.id },
+    select: saleDetailSelect,
+  });
+  appAssert(detail, NOT_FOUND, "sale not found");
+
+  const mappedSale = mapSaleMetrics(detail);
+  const reminder = buildSaleReminder(mappedSale);
+  appAssert(reminder, CONFLICT, "sale has no due reminder to send");
+
+  return reminder;
+};
+
+export const createSalePayment = async (data: CreateSalePaymentParams) => {
+  const sale = await getOwnedSale(data.userId, data.saleId);
+
+  const detail = await prisma.sale.findUnique({
+    where: { id: sale.id },
+    select: saleDetailSelect,
+  });
+  appAssert(detail, NOT_FOUND, "sale not found");
+
+  const mappedSale = mapSaleMetrics(detail);
+  appAssert(
+    data.amount <= mappedSale.dueAmount,
+    CONFLICT,
+    "payment cannot exceed due amount",
+  );
+
+  await prisma.payment.create({
+    data: {
+      saleId: sale.id,
+      amount: data.amount,
+    },
+  });
+
+  return getSaleById(data.userId, sale.id);
+};
