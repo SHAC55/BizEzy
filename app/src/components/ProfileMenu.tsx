@@ -376,6 +376,14 @@ export const ProfileMenu = () => {
                 onPress={() => navigateTo("UserDetail")}
               />
               <ActionRow
+                icon="settings"
+                label="Settings"
+                description="Appearance, notifications, security"
+                iconBg="#F1F5F9"
+                iconColor="#0F172A"
+                onPress={() => navigateTo("Settings")}
+              />
+              <ActionRow
                 icon="notifications-active"
                 label="Reminders"
                 description="View payment reminders"

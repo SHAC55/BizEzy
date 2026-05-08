@@ -110,6 +110,7 @@ export const loginUser = async (data: LoginParams) => {
     where: { name: data.username },
   });
   appAssert(user, UNAUTHORIZED, "invalid username");
+  appAssert(!user.archivedAt, UNAUTHORIZED, "account has been deleted");
 
   const isValid = await comparePassword(user, data.password);
   appAssert(isValid, UNAUTHORIZED, "invalid password");
@@ -398,4 +399,82 @@ export const resetPassword = async ({
   });
 
   return safeUser;
+};
+
+type ChangePasswordParams = {
+  userId: number;
+  currentPassword: string;
+  newPassword: string;
+  currentSessionId?: number;
+};
+
+export const changePassword = async ({
+  userId,
+  currentPassword,
+  newPassword,
+  currentSessionId,
+}: ChangePasswordParams) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  appAssert(user, NOT_FOUND, "user not found");
+  appAssert(user.password, UNAUTHORIZED, "password change unavailable for this account");
+
+  const isValid = await comparePassword(user, currentPassword);
+  appAssert(isValid, UNAUTHORIZED, "current password is incorrect");
+
+  appAssert(
+    newPassword !== currentPassword,
+    UNAUTHORIZED,
+    "new password must be different from current password",
+  );
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: await hashValue(newPassword) },
+  });
+
+  // Invalidate every other session so re-auth is required everywhere else
+  await prisma.session.deleteMany({
+    where: {
+      userId: user.id,
+      ...(currentSessionId ? { id: { not: currentSessionId } } : {}),
+    },
+  });
+};
+
+export const deleteAccount = async (userId: number, password: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { business: { select: { id: true } } },
+  });
+  appAssert(user, NOT_FOUND, "user not found");
+  appAssert(!user.archivedAt, NOT_FOUND, "account already deleted");
+  appAssert(user.password, UNAUTHORIZED, "password required to delete account");
+
+  const isValid = await comparePassword(user, password);
+  appAssert(isValid, UNAUTHORIZED, "password is incorrect");
+
+  const archivedAt = new Date();
+  const anonId = `deleted-${user.id}-${archivedAt.getTime()}`;
+
+  await prisma.$transaction(async (tx) => {
+    // Anonymize PII while preserving business + sales history for audit
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        archivedAt,
+        // null out unique fields so the email/mobile/name can be reused
+        name: anonId,
+        email: null,
+        mobile: null,
+        password: null,
+        provider: null,
+      },
+    });
+
+    // Drop every session
+    await tx.session.deleteMany({ where: { userId: user.id } });
+    await tx.verificationCode.deleteMany({ where: { userId: user.id } });
+  });
+
+  return { archivedAt };
 };

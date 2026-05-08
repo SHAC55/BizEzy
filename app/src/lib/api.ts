@@ -565,3 +565,51 @@ export const resetPassword = (payload: {
     body: payload,
     headers: mobileHeaders,
   });
+
+export const changePassword = (
+  accessToken: string,
+  payload: { currentPassword: string; newPassword: string },
+) =>
+  request<{ message: string }>("/user/password", {
+    method: "POST",
+    body: payload,
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const deleteAccount = (
+  accessToken: string,
+  payload: { password: string; confirm: "DELETE" },
+) =>
+  request<{ message: string }>("/user/delete", {
+    method: "POST",
+    body: payload,
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export type SessionInfo = {
+  id: number;
+  userAgent: string | null;
+  createdAt: string;
+  isCurrent?: boolean;
+};
+
+export const fetchSessions = (accessToken: string) =>
+  request<SessionInfo[]>("/sessions", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const revokeSession = (accessToken: string, sessionId: number) =>
+  request<{ message?: string }>(`/sessions/${sessionId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });

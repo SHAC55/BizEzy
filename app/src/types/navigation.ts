@@ -17,4 +17,10 @@ export type RootStackParamList = {
   CustomerDetail: { customerId: string };
   UserDetail: undefined;
   Reminders: undefined;
+  Settings: undefined;
+  SettingsAppearance: undefined;
+  SettingsNotifications: undefined;
+  SettingsSecurity: undefined;
+  SettingsAbout: undefined;
+  SettingsDangerZone: undefined;
 };
