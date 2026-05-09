@@ -234,12 +234,16 @@ const SaleDetail = () => {
                           </div>
                           <div>
                             <p className="font-semibold text-gray-900">
-                              {item.product.name}
+                              <p className="font-semibold text-gray-900">
+                                {item.product?.name ||
+                                  item.service?.name ||
+                                  "Unknown Item"}
+                              </p>
                             </p>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                              {item.product.category && (
+                              {item.product?.category && (
                                 <span className="rounded-full bg-gray-100 px-2 py-0.5">
-                                  {item.product.category}
+                                  {item.product?.category}
                                 </span>
                               )}
                               {item.product.sku && (
