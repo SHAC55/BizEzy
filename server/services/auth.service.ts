@@ -31,54 +31,16 @@ import {
 } from "../utils/emailTemplates";
 
 export type createAccountParams = {
-<<<<<<< HEAD
-  email: string;
-=======
   businessName: string;
   username: string;
   email?: string;
   phone: string;
->>>>>>> dev
   password: string;
   userAgent?: string;
 };
 
 export const createAccount = async (data: createAccountParams) => {
   const userExists = await prisma.user.findUnique({
-<<<<<<< HEAD
-    where: { email: data.email },
-  });
-  //  if (userExists) {
-  //   throw new Error("user already exists");
-  //}
-  appAssert(!userExists, 409, "email already in use");
-  const hashedValue = await hashValue(data.password);
-  const user = await prisma.user.create({
-    data: {
-      email: data.email,
-      password: hashedValue,
-    },
-    select: {
-      id: true,
-      email: true,
-      verified: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-  const verificationCode = await prisma.verificationCode.create({
-    data: {
-      userId: user.id,
-      type: VerificationCodeType.EMAIL_VERIFICATION,
-      expiresAt: oneYearFromNow(),
-    },
-  });
-  const url = `${APP_ORIGIN}/email/verify/${verificationCode.id}`;
-  await sendMail({
-    to: user.email,
-    ...getVerifyEmailTemplate(url),
-  });
-=======
     where: { mobile: data.phone },
   });
   appAssert(!userExists, 409, "phone number already in use");
@@ -117,7 +79,6 @@ export const createAccount = async (data: createAccountParams) => {
     },
   });
 
->>>>>>> dev
   const session = await prisma.session.create({
     data: {
       userId: user.id,
@@ -125,10 +86,6 @@ export const createAccount = async (data: createAccountParams) => {
       expiresAt: thirtyDaysFromNow(),
     },
   });
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
   const refreshToken = signToken(
     { sessionId: session.id },
     refreshTokenSignOptions,
@@ -137,32 +94,6 @@ export const createAccount = async (data: createAccountParams) => {
     userId: user.id,
     sessionId: session.id,
   });
-<<<<<<< HEAD
-  return {
-    user,
-    accessToken,
-    refreshToken,
-  };
-};
-
-export type LoginParams = {
-  email: string;
-  password: string;
-  userAgent?: string;
-};
-export const loginUser = async (data: LoginParams) => {
-  const user = await prisma.user.findUnique({
-    where: { email: data.email },
-  });
-  appAssert(user, UNAUTHORIZED, "invalid email");
-  const isValid = await comparePassword(user, data.password);
-  appAssert(isValid, UNAUTHORIZED, "invalid password");
-  const userId = user.id;
-
-  const session = await prisma.session.create({
-    data: {
-      userId,
-=======
 
   return { user, accessToken, refreshToken };
 };
@@ -185,38 +116,10 @@ export const loginUser = async (data: LoginParams) => {
   const session = await prisma.session.create({
     data: {
       userId: user.id,
->>>>>>> dev
       userAgent: data.userAgent,
       expiresAt: thirtyDaysFromNow(),
     },
   });
-<<<<<<< HEAD
-  const sessionInfo = {
-    sessionId: session.id,
-  };
-
-  const refreshToken = signToken(sessionInfo, refreshTokenSignOptions);
-  const accessToken = signToken({
-    ...sessionInfo,
-    userId,
-  });
-  const safeUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      verified: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-
-  return {
-    safeUser,
-    accessToken,
-    refreshToken,
-  };
-=======
 
   const refreshToken = signToken(
     { sessionId: session.id },
@@ -319,7 +222,6 @@ export const completeOnboarding = async (data: OnboardingParams) => {
   });
   appAssert(user, INTERNAL_SERVER_ERROR, "failed to complete onboarding");
   return user;
->>>>>>> dev
 };
 export const refreshUserAccessToken = async (refreshToken: string) => {
   const { payload } = verifyToken<RefreshTokenPayload>(refreshToken, {
@@ -435,12 +337,8 @@ export const sendPasswordResetEmail = async (email: string) => {
       expiresAt,
     },
   });
-<<<<<<< HEAD
-  const url = `/${APP_ORIGIN}/password/reset?code=${verificationCode.id}&exp=${expiresAt.getTime()}`;
-=======
   const url = `${APP_ORIGIN}/password/reset?code=${verificationCode.id}&exp=${expiresAt.getTime()}`;
   appAssert(user.email, NOT_FOUND, "please check your email");
->>>>>>> dev
 
   await sendMail({
     to: user.email,

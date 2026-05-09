@@ -1,12 +1,8 @@
 import catchErrors from "../utils/catchErrors";
 import {
-<<<<<<< HEAD
-  createAccount,
-=======
   completeOnboarding,
   createAccount,
   googleAuth,
->>>>>>> dev
   loginUser,
   refreshUserAccessToken,
   resetPassword,
@@ -21,13 +17,8 @@ import {
   setAuthCookies,
 } from "../utils/cookies";
 import {
-<<<<<<< HEAD
-  emailSchema,
-  loginSchema,
-=======
   loginSchema,
   onboardingSchema,
->>>>>>> dev
   registerSchema,
   resetPasswordSchema,
   verificationCodeSchema,
@@ -35,8 +26,6 @@ import {
 import { verifyToken } from "../utils/jwt";
 import { prisma } from "../config/db";
 import appAssert from "../utils/appAssert";
-<<<<<<< HEAD
-=======
 import { APP_ORIGIN } from "../constants/env";
 import {
   decodeGoogleMobileState,
@@ -44,7 +33,6 @@ import {
   getRefreshTokenFromRequest,
   isMobileAuthRequest,
 } from "../utils/requestAuth";
->>>>>>> dev
 
 export const registerHandler = catchErrors(async (req, res) => {
   const request = registerSchema.parse({
@@ -52,11 +40,6 @@ export const registerHandler = catchErrors(async (req, res) => {
     userAgent: req.headers["user-agent"],
   });
   const { user, accessToken, refreshToken } = await createAccount(request);
-<<<<<<< HEAD
-  return setAuthCookies({ res, accessToken, refreshToken })
-    .status(CREATED)
-    .json(user);
-=======
 
   setAuthCookies({ res, accessToken, refreshToken });
 
@@ -65,7 +48,6 @@ export const registerHandler = catchErrors(async (req, res) => {
   }
 
   return res.status(CREATED).json(user);
->>>>>>> dev
 });
 
 export const loginHandler = catchErrors(async (req, res) => {
@@ -73,16 +55,6 @@ export const loginHandler = catchErrors(async (req, res) => {
     ...req.body,
     userAgent: req.headers["user-agent"],
   });
-<<<<<<< HEAD
-  const { accessToken, refreshToken } = await loginUser(request);
-  return setAuthCookies({ res, accessToken, refreshToken }).status(OK).json({
-    message: "login successful",
-  });
-});
-export const logoutHandler = catchErrors(async (req, res) => {
-  const accessToken = req.cookies["access-token"] as string | undefined;
-
-=======
   const { safeUser, accessToken, refreshToken } = await loginUser(request);
 
   setAuthCookies({ res, accessToken, refreshToken });
@@ -101,62 +73,18 @@ export const logoutHandler = catchErrors(async (req, res) => {
 
 export const logoutHandler = catchErrors(async (req, res) => {
   const accessToken = getAccessTokenFromRequest(req);
->>>>>>> dev
   const { payload } = verifyToken(accessToken || "");
 
   if (payload) {
     await prisma.session.deleteMany({
-<<<<<<< HEAD
-      where: {
-        id: Number(payload.sessionId),
-      },
-    });
-  }
-=======
       where: { id: Number(payload.sessionId) },
     });
   }
 
->>>>>>> dev
   return clearAuthCookies(res).status(OK).json({
     message: "logout successful",
   });
 });
-<<<<<<< HEAD
-export const refreshHandler = catchErrors(async (req, res) => {
-  const refreshToken = req.cookies["refresh-token"] as string | undefined;
-  appAssert(refreshToken, UNAUTHORIZED, "missing refresh-token");
-  const { accessToken, newRefreshToken } =
-    await refreshUserAccessToken(refreshToken);
-  if (newRefreshToken) {
-    res.cookie(
-      "refresh-token",
-      newRefreshToken,
-      getRefreshTokenCookieOptions(),
-    );
-  }
-  return res
-    .status(OK)
-    .cookie("accessToken", accessToken, getAccessTokenCookieOptions())
-    .json({
-      message: "Access Token Refreshed",
-    });
-});
-export const verifyEmailHandler = catchErrors(async (req, res) => {
-  const verificationCode = verificationCodeSchema.parse(req.params.code);
-  await verifyEmail(verificationCode);
-  return res.status(OK).json({
-    message: "email verified",
-  });
-});
-
-export const forgotPasswordHandler = catchErrors(async (req, res) => {
-  const email = emailSchema.parse(req.body.email);
-  await sendPasswordResetEmail(email);
-  return res.status(OK).json({
-    message: "password reset email send",
-  });
-=======
 
 export const refreshHandler = catchErrors(async (req, res) => {
   const refreshToken = getRefreshTokenFromRequest(req);
@@ -193,7 +121,6 @@ export const forgotPasswordHandler = catchErrors(async (req, res) => {
   appAssert(email, 400, "email is required");
   await sendPasswordResetEmail(email);
   return res.status(OK).json({ message: "password reset email sent" });
->>>>>>> dev
 });
 
 export const resetPasswordHandler = catchErrors(async (req, res) => {
@@ -203,8 +130,6 @@ export const resetPasswordHandler = catchErrors(async (req, res) => {
     message: "password reset successful",
   });
 });
-<<<<<<< HEAD
-=======
 
 export const googleAuthCallbackHandler = catchErrors(async (req, res) => {
   const { email, name, provider } = req.user as {
@@ -259,4 +184,3 @@ export const onboardingHandler = catchErrors(async (req, res) => {
 
   return res.status(OK).json({ message: "onboarding complete", user });
 });
->>>>>>> dev
