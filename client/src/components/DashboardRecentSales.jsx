@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  Calendar,
-  CreditCard,
-  ReceiptText,
-  ChevronRight,
-} from "lucide-react";
+import { Calendar, CreditCard, ReceiptText, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const formatCurrency = (value) =>
@@ -45,7 +40,6 @@ const DashboardRecentSales = ({ sales, isLoading, error }) => {
   return (
     <div className="mt-6 px-4 md:px-6">
       <div className="rounded-2xl border border-black/8 bg-white overflow-hidden">
-
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
           <div>
@@ -122,7 +116,9 @@ const DashboardRecentSales = ({ sales, isLoading, error }) => {
                           <span
                             className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${cfg.badge}`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}
+                            />
                             {cfg.label}
                           </span>
                         </div>
@@ -131,7 +127,14 @@ const DashboardRecentSales = ({ sales, isLoading, error }) => {
                         <p className="text-xs text-black/40 mt-0.5 truncate max-w-[220px]">
                           {sale.items
                             .slice(0, 2)
-                            .map((i) => `${i.quantity}× ${i.product.name}`)
+                            .map(
+                              (i) =>
+                                `${i.quantity}× ${
+                                  i.product?.name ||
+                                  i.service?.name ||
+                                  "Unknown Item"
+                                }`,
+                            )
                             .join(" · ")}
                           {sale.items.length > 2 &&
                             ` · +${sale.items.length - 2} more`}
