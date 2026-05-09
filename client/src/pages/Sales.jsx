@@ -433,14 +433,14 @@ const Sales = () => {
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                                {sale.customer.name.charAt(0).toUpperCase()}
+                                {sale.customer?.name?.charAt(0)?.toUpperCase() || "U"}
                               </div>
                               <div>
                                 <p className="text-sm font-semibold text-black leading-tight">
-                                  {sale.customer.name}
+                                 {sale.customer?.name || "Unknown Customer"}
                                 </p>
                                 <p className="text-xs text-black/40 mt-0.5">
-                                  {sale.customer.mobile}
+                                  {sale.customer?.mobile || "No Mobile"}
                                 </p>
                               </div>
                             </div>
@@ -449,7 +449,7 @@ const Sales = () => {
                           {/* Items */}
                           <td className="px-5 py-3.5">
                             <p className="text-sm text-black font-medium">
-                              {sale.items[0]?.product.name}
+                            {sale.items[0]?.product?.name || "Unknown Product"}
                             </p>
                             {sale.items.length > 1 && (
                               <p className="text-xs text-black/35 mt-0.5">
