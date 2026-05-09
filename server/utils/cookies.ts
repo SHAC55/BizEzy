@@ -6,10 +6,17 @@ export const REFRESH_PATH = "/auth/refresh";
 
 const isProd = NODE_ENV === "production";
 
+// const defaults: CookieOptions = {
+//   sameSite: isProd ? "none" : "lax",
+//   httpOnly: true,
+//   secure: isProd,
+// };
+
 const defaults: CookieOptions = {
   sameSite: isProd ? "none" : "lax",
   httpOnly: true,
   secure: isProd,
+  domain: isProd ? ".bizezy.in" : undefined, // 👈 only change
 };
 
 export const getAccessTokenCookieOptions = (): CookieOptions => ({
