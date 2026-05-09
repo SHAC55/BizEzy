@@ -34,7 +34,7 @@ const formatDate = (value) =>
   });
 
 // Debounce hook
-function useDebounce(value, delay = 4000) {
+function useDebounce(value, delay = 400) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(value), delay);
@@ -63,6 +63,10 @@ const STATUS_CONFIG = {
 
 const getStatusConfig = (status) =>
   STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+
+// Safely resolve the display name for a sale item regardless of type
+const resolveItemName = (item) =>
+  item?.product?.name || item?.service?.name || "Unknown Item";
 
 const Sales = () => {
   const navigate = useNavigate();
@@ -423,6 +427,10 @@ const Sales = () => {
                   <tbody className="divide-y divide-black/5">
                     {sales.map((sale) => {
                       const cfg = getStatusConfig(sale.status);
+                      const firstItem = sale.items?.[0];
+                      const firstName = resolveItemName(firstItem);
+                      const extraCount = (sale.items?.length ?? 1) - 1;
+
                       return (
                         <tr
                           key={sale.id}
@@ -448,16 +456,14 @@ const Sales = () => {
                             </div>
                           </td>
 
-                          {/* Items */}
+                          {/* Items — safely handles product OR service */}
                           <td className="px-5 py-3.5">
                             <p className="text-sm text-black font-medium">
-                              {sale.items[0]?.product?.name ||
-                                sale.items[0]?.service?.name ||
-                                "Unknown Item"}
+                              {firstName}
                             </p>
-                            {sale.items.length > 1 && (
+                            {extraCount > 0 && (
                               <p className="text-xs text-black/35 mt-0.5">
-                                +{sale.items.length - 1} more
+                                +{extraCount} more
                               </p>
                             )}
                           </td>
