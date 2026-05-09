@@ -86,37 +86,8 @@ export const logoutHandler = catchErrors(async (req, res) => {
   });
 });
 
-// export const refreshHandler = catchErrors(async (req, res) => {
-//   const refreshToken = getRefreshTokenFromRequest(req);
-//   appAssert(refreshToken, UNAUTHORIZED, "missing refresh token");
-
-//   const { accessToken, newRefreshToken } =
-//     await refreshUserAccessToken(refreshToken);
-
-//   if (newRefreshToken) {
-//     res.cookie("refreshToken", newRefreshToken, getRefreshTokenCookieOptions());
-//   }
-
-//   res.cookie("accessToken", accessToken, getAccessTokenCookieOptions());
-
-//   if (isMobileAuthRequest(req)) {
-//     return res.status(OK).json({
-//       message: "access token refreshed",
-//       accessToken,
-//       refreshToken: newRefreshToken || refreshToken,
-//     });
-//   }
-
-//   return res.status(OK).json({ message: "access token refreshed" });
-// });
-
 export const refreshHandler = catchErrors(async (req, res) => {
-  // Read from cookie OR body/header (iOS fallback)
-  const refreshToken =
-    getRefreshTokenFromRequest(req) ||   // cookie
-    req.body?.refreshToken ||            // body fallback
-    req.headers?.["x-refresh-token"];    // header fallback
-
+  const refreshToken = getRefreshTokenFromRequest(req);
   appAssert(refreshToken, UNAUTHORIZED, "missing refresh token");
 
   const { accessToken, newRefreshToken } =
@@ -132,7 +103,7 @@ export const refreshHandler = catchErrors(async (req, res) => {
     return res.status(OK).json({
       message: "access token refreshed",
       accessToken,
-      refreshToken: newRefreshToken || refreshToken, 
+      refreshToken: newRefreshToken || refreshToken,
     });
   }
 
