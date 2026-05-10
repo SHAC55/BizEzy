@@ -25,11 +25,16 @@ import { queryKeys } from "../lib/query";
 import { useAuth } from "../providers/AuthProvider";
 import type { Product } from "../types/product";
 import type { AppRoute } from "../types/navigation";
+import { InventoryServicesPanel } from "./InventoryServicesPanel";
+
+type InventoryTab = "products" | "services";
 
 type InventoryPageProps = {
   onBack: () => void;
   onAddInventory: () => void;
+  onAddService: () => void;
   onOpenProduct: (productId: string) => void;
+  onOpenService: (serviceId: string) => void;
   onNavigate: (route: AppRoute) => void;
 };
 
@@ -47,9 +52,16 @@ const stockOf = (q: number, min: number) => q === 0 ? STOCK.out : q <= min ? STO
 
 const initials = (n: string) => n.split(" ").slice(0, 2).map((p) => p[0]?.toUpperCase() || "").join("");
 
-export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps) => {
+export const InventoryPage = ({
+  onNavigate,
+  onOpenProduct,
+  onOpenService,
+  onAddInventory,
+  onAddService,
+}: InventoryPageProps) => {
   const { session } = useAuth();
   const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState<InventoryTab>("products");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
@@ -314,20 +326,102 @@ export const InventoryPage = ({ onNavigate, onOpenProduct }: InventoryPageProps)
 
   return (
     <AppLayout currentRoute="inventory" eyebrow="Stock" title="Inventory Atlas" subtitle="Monitor stock health, value and product flow." onNavigate={onNavigate}>
-      <FlatList
-        data={isLoading ? [] : products}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
-        ListFooterComponent={listFooter}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refetch} />}
-        contentContainerClassName="px-4 pb-32 pt-2"
-        showsVerticalScrollIndicator={false}
-      />
+      <View className="px-4 pt-2">
+        <View className="flex-row items-center bg-slate-100 rounded-2xl p-1">
+          <TabButton
+            active={activeTab === "products"}
+            label="Products"
+            icon="inventory-2"
+            onPress={() => setActiveTab("products")}
+          />
+          <TabButton
+            active={activeTab === "services"}
+            label="Services"
+            icon="build"
+            onPress={() => setActiveTab("services")}
+          />
+        </View>
+      </View>
+
+      {activeTab === "products" ? (
+        <FlatList
+          data={isLoading ? [] : products}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={listEmpty}
+          ListFooterComponent={listFooter}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refetch} />}
+          contentContainerClassName="px-4 pb-32 pt-2"
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <InventoryServicesPanel onOpenService={onOpenService} />
+      )}
+
+      <Pressable
+        onPress={activeTab === "services" ? onAddService : onAddInventory}
+        android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: false }}
+        style={{
+          position: "absolute",
+          right: 20,
+          bottom: 24,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.3,
+          shadowRadius: 16,
+          elevation: 12,
+        }}
+        className="h-14 px-5 rounded-full bg-slate-900 flex-row items-center justify-center gap-2"
+      >
+        <MaterialIcons name="add" size={20} color="#fff" />
+        <Text className="text-white font-bold text-[13px]">
+          {activeTab === "services" ? "Add Service" : "Add Product"}
+        </Text>
+      </Pressable>
     </AppLayout>
   );
 };
+
+const TabButton = ({
+  active,
+  label,
+  icon,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  icon: IconName;
+  onPress: () => void;
+}) => (
+  <Pressable
+    onPress={onPress}
+    android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
+    className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl py-2.5 ${active ? "bg-white" : ""}`}
+    style={
+      active
+        ? {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 6,
+            elevation: 2,
+          }
+        : undefined
+    }
+  >
+    <MaterialIcons
+      name={icon}
+      size={15}
+      color={active ? "#0F172A" : "#94A3B8"}
+    />
+    <Text
+      className={`text-[13px] font-bold ${active ? "text-slate-900" : "text-slate-500"}`}
+    >
+      {label}
+    </Text>
+  </Pressable>
+);
 
 // ── Health Pill ──────────────────────────────────────────────────
 const HealthPill = ({ icon, label, count, color, bg }: { icon: IconName; label: string; count: number; color: string; bg: string }) => (

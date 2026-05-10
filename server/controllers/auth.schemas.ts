@@ -30,6 +30,21 @@ export const resetPasswordSchema = z.object({
   verificationCode: verificationCodeSchema,
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: passwordSchema,
+    newPassword: passwordSchema,
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "new password must be different from current password",
+    path: ["newPassword"],
+  });
+
+export const deleteAccountSchema = z.object({
+  password: passwordSchema,
+  confirm: z.literal("DELETE", { message: "type DELETE to confirm" }),
+});
+
 export const onboardingSchema = z.object({
   username: z.string().min(3).max(100),
   phone: z.string().min(7).max(20),

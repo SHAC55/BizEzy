@@ -6,11 +6,8 @@ To install dependencies:
 bun install
 ```
 
-<<<<<<< HEAD
-=======
 Prisma packages are pinned to `7.2.0` in this server package. After pulling dependency or generated-client changes, rerun install so `generated/prisma` and the installed Prisma runtime stay on the same version.
 
->>>>>>> dev
 To run:
 
 ```bash
@@ -18,8 +15,6 @@ bun run index.ts
 ```
 
 This project was created using `bun init` in bun v1.3.5. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
-<<<<<<< HEAD
-=======
 
 # API Documentation
 
@@ -141,4 +136,3 @@ Returns profile details with sales history and payment history.
 ### Update Business
 
 `PATCH /business`
->>>>>>> dev

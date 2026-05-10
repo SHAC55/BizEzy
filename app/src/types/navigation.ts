@@ -9,6 +9,7 @@ export type AppRoute =
 export type RootStackParamList = {
   MainTabs: undefined;
   AddInventory: { productId?: string } | undefined;
+  AddService: { serviceId?: string } | undefined;
   ProductDetail: { productId: string };
   AddSale: undefined;
   SaleDetail: { saleId: string };
@@ -16,4 +17,10 @@ export type RootStackParamList = {
   CustomerDetail: { customerId: string };
   UserDetail: undefined;
   Reminders: undefined;
+  Settings: undefined;
+  SettingsAppearance: undefined;
+  SettingsNotifications: undefined;
+  SettingsSecurity: undefined;
+  SettingsAbout: undefined;
+  SettingsDangerZone: undefined;
 };

@@ -61,6 +61,7 @@ export const ModelName = {
   Invoice: 'Invoice',
   Payment: 'Payment',
   Product: 'Product',
+  Service: 'Service',
   InventoryMovement: 'InventoryMovement'
 } as const
 
@@ -88,6 +89,7 @@ export const UserScalarFieldEnum = {
   mobile: 'mobile',
   email: 'email',
   provider: 'provider',
+  archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -165,6 +167,7 @@ export const SaleItemScalarFieldEnum = {
   id: 'id',
   saleId: 'saleId',
   productId: 'productId',
+  serviceId: 'serviceId',
   quantity: 'quantity',
   unitPrice: 'unitPrice',
   totalAmount: 'totalAmount',
@@ -209,6 +212,23 @@ export const ProductScalarFieldEnum = {
 } as const
 
 export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const ServiceScalarFieldEnum = {
+  id: 'id',
+  businessId: 'businessId',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  category: 'category',
+  costPrice: 'costPrice',
+  price: 'price',
+  durationMinutes: 'durationMinutes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ServiceScalarFieldEnum = (typeof ServiceScalarFieldEnum)[keyof typeof ServiceScalarFieldEnum]
 
 
 export const InventoryMovementScalarFieldEnum = {

@@ -22,9 +22,11 @@ import type { AppRoute } from "../types/navigation";
 type Props = {
   session: AuthSession;
   onOpenProduct: (productId: string) => void;
+  onOpenService: (serviceId: string) => void;
   onOpenSale: (saleId: string) => void;
   onOpenCustomer: (customerId: string) => void;
   onOpenAddInventory: () => void;
+  onOpenAddService: () => void;
   onOpenAddSale: () => void;
   onOpenAddCustomer: () => void;
   onOpenReminders: () => void;
@@ -55,9 +57,11 @@ export const MainTabs = ({
   onOpenSale,
   onOpenCustomer,
   onOpenAddInventory,
+  onOpenAddService,
   onOpenAddSale,
   onOpenAddCustomer,
   onOpenReminders,
+  onOpenService,
 }: Props) => {
   const pagerRef = useRef<PagerView>(null);
   const [activePage, setActivePage] = useState(0);
@@ -143,6 +147,7 @@ export const MainTabs = ({
             <DashboardPage
               session={session}
               onOpenAddInventory={onOpenAddInventory}
+              onOpenAddService={onOpenAddService}
               onOpenCustomers={onOpenAddCustomer}
               onOpenInventory={() => goToPage(1)}
               onOpenSales={onOpenAddSale}
@@ -153,7 +158,9 @@ export const MainTabs = ({
             <InventoryPage
               onBack={() => goToPage(0)}
               onAddInventory={onOpenAddInventory}
+              onAddService={onOpenAddService}
               onOpenProduct={onOpenProduct}
+              onOpenService={onOpenService}
               onNavigate={onNavigate}
             />
           </View>

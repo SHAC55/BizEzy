@@ -434,7 +434,7 @@ export const RemindersPage = ({ onBack, onOpenSale }: RemindersPageProps) => {
                 <Text className="text-[11px] text-zinc-400 mt-1" numberOfLines={1}>
                   {sale.items
                     .slice(0, 2)
-                    .map((i) => `${i.quantity}× ${i.product.name}`)
+                    .map((i) => `${i.quantity}× ${i.product?.name ?? i.service?.name ?? "Item"}`)
                     .join(" · ")}
                   {sale.items.length > 2 ? ` +${sale.items.length - 2} more` : ""}
                 </Text>

@@ -1,10 +1,4 @@
 import { Router } from "express";
-<<<<<<< HEAD
-import {
-  forgotPasswordHandler,
-  loginHandler,
-  logoutHandler,
-=======
 import passport from "../config/passport";
 import { APP_ORIGIN } from "../constants/env";
 import authenticate from "../middleware/authenticate";
@@ -14,17 +8,11 @@ import {
   loginHandler,
   logoutHandler,
   onboardingHandler,
->>>>>>> dev
   refreshHandler,
   registerHandler,
   resetPasswordHandler,
   verifyEmailHandler,
 } from "../controllers/auth.controller";
-<<<<<<< HEAD
-
-const authRoutes = Router();
-
-=======
 import {
   decodeGoogleMobileState,
   encodeGoogleMobileState,
@@ -33,7 +21,6 @@ import {
 const authRoutes = Router();
 
 // Standard auth
->>>>>>> dev
 authRoutes.post("/register", registerHandler);
 authRoutes.post("/login", loginHandler);
 authRoutes.get("/refresh", refreshHandler);
@@ -41,8 +28,6 @@ authRoutes.get("/logout", logoutHandler);
 authRoutes.get("/email/verify/:code", verifyEmailHandler);
 authRoutes.post("/password/forgot", forgotPasswordHandler);
 authRoutes.post("/password/reset", resetPasswordHandler);
-<<<<<<< HEAD
-=======
 
 // Google OAuth
 authRoutes.get("/google", (req, res, next) => {
@@ -90,5 +75,4 @@ authRoutes.get("/google/callback", (req, res, next) => {
 // Onboarding
 authRoutes.post("/onboarding", authenticate, onboardingHandler);
 
->>>>>>> dev
 export default authRoutes;

@@ -1,16 +1,16 @@
 import { Router } from "express";
-<<<<<<< HEAD
-import { getUserHandler } from "../controllers/user.controller";
-=======
-import { getUserHandler, updateUserHandler } from "../controllers/user.controller";
->>>>>>> dev
+import {
+  changePasswordHandler,
+  deleteAccountHandler,
+  getUserHandler,
+  updateUserHandler,
+} from "../controllers/user.controller";
 
 const userRoutes = Router();
 
 userRoutes.get("/", getUserHandler);
-<<<<<<< HEAD
-=======
 userRoutes.patch("/", updateUserHandler);
->>>>>>> dev
+userRoutes.post("/password", changePasswordHandler);
+userRoutes.post("/delete", deleteAccountHandler);
 
 export default userRoutes;

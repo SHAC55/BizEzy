@@ -8,6 +8,7 @@ import authenticate from "./middleware/authenticate";
 import userRoutes from "./routes/user.route";
 import sessionRoutes from "./routes/session.route";
 import productRoutes from "./routes/product.route";
+import serviceRoutes from "./routes/service.route";
 import businessRoutes from "./routes/business.route";
 import customerRoutes from "./routes/customer.route";
 import saleRoutes from "./routes/sale.route";
@@ -38,6 +39,7 @@ app.use("/user", authenticate, userRoutes);
 app.use("/sessions", authenticate, sessionRoutes);
 app.use("/business", authenticate, businessRoutes);
 app.use("/products", authenticate, productRoutes);
+app.use("/services", authenticate, serviceRoutes);
 app.use("/customers", authenticate, customerRoutes);
 app.use("/sales", authenticate, saleRoutes);
 

@@ -1,11 +1,5 @@
 export const safeUserSelect = {
   id: true,
-<<<<<<< HEAD
-  email: true,
-  verified: true,
-  createdAt: true,
-  updatedAt: true,
-=======
   name: true, // username
   mobile: true, // mobile number
   email: true,
@@ -23,5 +17,4 @@ export const safeUserSelect = {
       createdAt: true,
     },
   },
->>>>>>> dev
 } as const;

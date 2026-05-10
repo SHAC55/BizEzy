@@ -6,17 +6,11 @@ export const REFRESH_PATH = "/auth/refresh";
 
 const isProd = NODE_ENV === "production";
 
-// const defaults: CookieOptions = {
-//   sameSite: isProd ? "none" : "lax",
-//   httpOnly: true,
-//   secure: isProd,
-// };
-
 const defaults: CookieOptions = {
   sameSite: isProd ? "none" : "lax",
   httpOnly: true,
   secure: isProd,
-  domain: isProd ? ".bizezy.in" : undefined, // 👈 only change
+  ...(isProd ? { domain: ".bizezy.in" } : {}),
 };
 
 export const getAccessTokenCookieOptions = (): CookieOptions => ({
@@ -27,8 +21,7 @@ export const getAccessTokenCookieOptions = (): CookieOptions => ({
 export const getRefreshTokenCookieOptions = (): CookieOptions => ({
   ...defaults,
   expires: thirtyDaysFromNow(),
-  // path: REFRESH_PATH,
-  path: "/",
+  path: REFRESH_PATH,
 });
 
 type params = {
@@ -45,5 +38,4 @@ export const setAuthCookies = ({ res, accessToken, refreshToken }: params) =>
 export const clearAuthCookies = (res: Response) =>
   res
     .clearCookie("accessToken", { ...defaults })
-    // .clearCookie("refreshToken", { ...defaults, path: REFRESH_PATH });
-    .clearCookie("refreshToken", { ...defaults, path: "/" });
+    .clearCookie("refreshToken", { ...defaults, path: REFRESH_PATH });

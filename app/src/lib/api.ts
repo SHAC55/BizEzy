@@ -18,6 +18,12 @@ import type {
   UpdateProductPayload,
 } from "../types/product";
 import type {
+  CreateServicePayload,
+  Service,
+  ServicesResponse,
+  UpdateServicePayload,
+} from "../types/service";
+import type {
   LoginPayload,
   OnboardingPayload,
   RegisterPayload,
@@ -311,6 +317,81 @@ export const fetchProductMovements = (accessToken: string, productId: string) =>
     },
   });
 
+export const fetchServices = (
+  accessToken: string,
+  params: {
+    page: number;
+    limit: number;
+    category?: string;
+    search?: string;
+  },
+) =>
+  request<ServicesResponse>(
+    `/services?${createQueryString({
+      page: params.page,
+      limit: params.limit,
+      category: params.category ?? "",
+      search: params.search ?? "",
+    })}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+export const createService = async (
+  accessToken: string,
+  payload: CreateServicePayload,
+) => {
+  const data = await request<{ message: string; service: Service }>(
+    "/services",
+    {
+      method: "POST",
+      body: payload,
+      headers: {
+        ...mobileHeaders,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  return data.service;
+};
+
+export const fetchService = (accessToken: string, serviceId: string) =>
+  request<Service>(`/services/${serviceId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const updateService = async (
+  accessToken: string,
+  serviceId: string,
+  payload: UpdateServicePayload,
+) => {
+  const data = await request<{ message: string; service: Service }>(
+    `/services/${serviceId}`,
+    {
+      method: "PATCH",
+      body: payload,
+      headers: {
+        ...mobileHeaders,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  return data.service;
+};
+
+export const deleteService = (accessToken: string, serviceId: string) =>
+  request<{ message?: string }>(`/services/${serviceId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
 export const createCustomer = async (
   accessToken: string,
   payload: CreateCustomerPayload,
@@ -483,4 +564,52 @@ export const resetPassword = (payload: {
     method: "POST",
     body: payload,
     headers: mobileHeaders,
+  });
+
+export const changePassword = (
+  accessToken: string,
+  payload: { currentPassword: string; newPassword: string },
+) =>
+  request<{ message: string }>("/user/password", {
+    method: "POST",
+    body: payload,
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const deleteAccount = (
+  accessToken: string,
+  payload: { password: string; confirm: "DELETE" },
+) =>
+  request<{ message: string }>("/user/delete", {
+    method: "POST",
+    body: payload,
+    headers: {
+      ...mobileHeaders,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export type SessionInfo = {
+  id: number;
+  userAgent: string | null;
+  createdAt: string;
+  isCurrent?: boolean;
+};
+
+export const fetchSessions = (accessToken: string) =>
+  request<SessionInfo[]>("/sessions", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+export const revokeSession = (accessToken: string, sessionId: number) =>
+  request<{ message?: string }>(`/sessions/${sessionId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });

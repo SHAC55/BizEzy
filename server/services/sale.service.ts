@@ -9,7 +9,8 @@ export type CreateSaleParams = {
   userId: number;
   customerId: string;
   items: Array<{
-    productId: string;
+    productId?: string;
+    serviceId?: string;
     quantity: number;
     unitPrice: number;
   }>;
@@ -101,7 +102,10 @@ const mapSaleMetrics = (sale: SaleListItem | SaleDetailItem) => {
   const gstRate = sale.gstRate;
   const gstAmount = sale.gstAmount;
   const estimatedCostAmount = sale.items.reduce(
-    (sum, item) => sum + item.quantity * (item.product.costPrice ?? 0),
+    (sum, item) =>
+      sum +
+      item.quantity *
+        (item.product?.costPrice ?? item.service?.costPrice ?? 0),
     0,
   );
   const estimatedProfitAmount =
@@ -129,11 +133,13 @@ const mapSaleMetrics = (sale: SaleListItem | SaleDetailItem) => {
     items: sale.items.map((item) => ({
       id: item.id,
       productId: item.productId,
+      serviceId: item.serviceId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       totalAmount: item.totalAmount,
       createdAt: item.createdAt,
       product: item.product,
+      service: item.service,
     })),
     payments: sale.payments,
   };
@@ -192,28 +198,43 @@ export const createSale = async (data: CreateSaleParams) => {
     });
     appAssert(customer, NOT_FOUND, "customer not found");
 
-    const productIds = data.items.map((item) => item.productId);
-    const products = await transaction.product.findMany({
-      where: {
-        id: {
-          in: productIds,
-        },
-        businessId: business.id,
-      },
-      select: {
-        id: true,
-        businessId: true,
-        name: true,
-        quantity: true,
-        minimumQuantity: true,
-      },
-    });
+    const productItems = data.items.filter(
+      (item): item is typeof item & { productId: string } =>
+        Boolean(item.productId),
+    );
+    const serviceItems = data.items.filter(
+      (item): item is typeof item & { serviceId: string } =>
+        Boolean(item.serviceId),
+    );
 
-    appAssert(products.length === data.items.length, NOT_FOUND, "product not found");
+    const productIds = productItems.map((item) => item.productId);
+    const products = productIds.length
+      ? await transaction.product.findMany({
+          where: {
+            id: { in: productIds },
+            businessId: business.id,
+          },
+          select: {
+            id: true,
+            businessId: true,
+            name: true,
+            quantity: true,
+            minimumQuantity: true,
+          },
+        })
+      : [];
 
-    const productMap = new Map(products.map((product) => [product.id, product]));
+    appAssert(
+      products.length === productIds.length,
+      NOT_FOUND,
+      "product not found",
+    );
 
-    data.items.forEach((item) => {
+    const productMap = new Map(
+      products.map((product) => [product.id, product]),
+    );
+
+    productItems.forEach((item) => {
       const product = productMap.get(item.productId);
       appAssert(product, NOT_FOUND, "product not found");
       appAssert(
@@ -222,6 +243,23 @@ export const createSale = async (data: CreateSaleParams) => {
         `${product.name} does not have enough stock`,
       );
     });
+
+    const serviceIds = serviceItems.map((item) => item.serviceId);
+    const services = serviceIds.length
+      ? await transaction.service.findMany({
+          where: {
+            id: { in: serviceIds },
+            businessId: business.id,
+          },
+          select: { id: true },
+        })
+      : [];
+
+    appAssert(
+      services.length === serviceIds.length,
+      NOT_FOUND,
+      "service not found",
+    );
 
     const sale = await transaction.sale.create({
       data: {
@@ -242,16 +280,21 @@ export const createSale = async (data: CreateSaleParams) => {
     await transaction.saleItem.createMany({
       data: data.items.map((item) => ({
         saleId: sale.id,
-        productId: item.productId,
+        productId: item.productId ?? null,
+        serviceId: item.serviceId ?? null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalAmount: item.quantity * item.unitPrice,
       })),
     });
 
-    let lowStockItems: Array<{ name: string; quantity: number; minimumQuantity: number }> = [];
+    let lowStockItems: Array<{
+      name: string;
+      quantity: number;
+      minimumQuantity: number;
+    }> = [];
 
-    for (const item of data.items) {
+    for (const item of productItems) {
       const product = productMap.get(item.productId);
       appAssert(product, NOT_FOUND, "product not found");
 
@@ -266,12 +309,8 @@ export const createSale = async (data: CreateSaleParams) => {
       }
 
       await transaction.product.update({
-        where: {
-          id: product.id,
-        },
-        data: {
-          quantity: quantityAfter,
-        },
+        where: { id: product.id },
+        data: { quantity: quantityAfter },
       });
 
       await transaction.inventoryMovement.create({
@@ -336,6 +375,18 @@ export const getSales = async (data: GetSalesParams) => {
           items: {
             some: {
               product: {
+                name: {
+                  contains: data.search,
+                  mode: "insensitive",
+                },
+              },
+            },
+          },
+        },
+        {
+          items: {
+            some: {
+              service: {
                 name: {
                   contains: data.search,
                   mode: "insensitive",

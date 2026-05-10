@@ -1,14 +1,15 @@
-<<<<<<< HEAD
-import { prisma } from "../config/db";
-import { NOT_FOUND, OK } from "../constants/http";
-=======
 import { z } from "zod";
 import { prisma } from "../config/db";
-import { CONFLICT, NOT_FOUND, OK } from "../constants/http";
->>>>>>> dev
+import { CONFLICT, NOT_FOUND, OK, UNAUTHORIZED } from "../constants/http";
 import { safeUserSelect } from "../constants/userType";
 import appAssert from "../utils/appAssert";
 import catchErrors from "../utils/catchErrors";
+import { changePassword, deleteAccount } from "../services/auth.service";
+import {
+  changePasswordSchema,
+  deleteAccountSchema,
+} from "./auth.schemas";
+import { clearAuthCookies } from "../utils/cookies";
 
 export const getUserHandler = catchErrors(async (req, res) => {
   const user = await prisma.user.findUnique({
@@ -17,18 +18,12 @@ export const getUserHandler = catchErrors(async (req, res) => {
     },
   });
   appAssert(user, NOT_FOUND, "user not found");
-<<<<<<< HEAD
-
-=======
->>>>>>> dev
   const safeUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: safeUserSelect,
   });
   return res.status(OK).json(safeUser);
 });
-<<<<<<< HEAD
-=======
 
 const updateUserSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
@@ -59,4 +54,30 @@ export const updateUserHandler = catchErrors(async (req, res) => {
   }
 });
 
->>>>>>> dev
+export const changePasswordHandler = catchErrors(async (req, res) => {
+  const userId = req.userId;
+  appAssert(userId, UNAUTHORIZED, "not authenticated");
+
+  const request = changePasswordSchema.parse(req.body);
+
+  await changePassword({
+    userId,
+    currentPassword: request.currentPassword,
+    newPassword: request.newPassword,
+    currentSessionId: req.sessionId,
+  });
+
+  return res.status(OK).json({ message: "password updated" });
+});
+
+export const deleteAccountHandler = catchErrors(async (req, res) => {
+  const userId = req.userId;
+  appAssert(userId, UNAUTHORIZED, "not authenticated");
+
+  const request = deleteAccountSchema.parse(req.body);
+  await deleteAccount(userId, request.password);
+
+  clearAuthCookies(res);
+  return res.status(OK).json({ message: "account deleted" });
+});
+

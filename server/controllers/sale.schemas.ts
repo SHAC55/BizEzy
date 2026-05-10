@@ -7,11 +7,21 @@ export const createSaleSchema = z
     customerId: z.string().uuid(),
     items: z
       .array(
-        z.object({
-          productId: z.string().uuid(),
-          quantity: z.number().int().positive(),
-          unitPrice: z.number().positive(),
-        }),
+        z
+          .object({
+            productId: z.string().uuid().optional(),
+            serviceId: z.string().uuid().optional(),
+            quantity: z.number().int().positive(),
+            unitPrice: z.number().positive(),
+          })
+          .refine(
+            (item) =>
+              (item.productId && !item.serviceId) ||
+              (!item.productId && item.serviceId),
+            {
+              message: "each item must reference either a product or a service",
+            },
+          ),
       )
       .min(1),
     subtotalAmount: z.number().positive(),
@@ -24,17 +34,30 @@ export const createSaleSchema = z
   })
   .superRefine((data, context) => {
     const productIds = new Set<string>();
+    const serviceIds = new Set<string>();
 
     data.items.forEach((item, index) => {
-      if (productIds.has(item.productId)) {
-        context.addIssue({
-          code: "custom",
-          path: ["items", index, "productId"],
-          message: "duplicate products are not allowed",
-        });
+      if (item.productId) {
+        if (productIds.has(item.productId)) {
+          context.addIssue({
+            code: "custom",
+            path: ["items", index, "productId"],
+            message: "duplicate products are not allowed",
+          });
+        }
+        productIds.add(item.productId);
       }
 
-      productIds.add(item.productId);
+      if (item.serviceId) {
+        if (serviceIds.has(item.serviceId)) {
+          context.addIssue({
+            code: "custom",
+            path: ["items", index, "serviceId"],
+            message: "duplicate services are not allowed",
+          });
+        }
+        serviceIds.add(item.serviceId);
+      }
     });
 
     const subtotal = data.items.reduce(

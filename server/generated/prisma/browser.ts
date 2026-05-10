@@ -78,6 +78,12 @@ export type Payment = Prisma.PaymentModel
  */
 export type Product = Prisma.ProductModel
 /**
+ * Model Service
+ * ///////////////////
+ * ///////////////////
+ */
+export type Service = Prisma.ServiceModel
+/**
  * Model InventoryMovement
  * ///////////////////
  * ///////////////////

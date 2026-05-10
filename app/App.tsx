@@ -21,6 +21,7 @@ import { MainTabs } from "./src/components/MainTabs";
 import { AuthPage } from "./src/pages/AuthPage";
 import { AddCustomerPage } from "./src/pages/AddCustomerPage";
 import { AddInventoryPage } from "./src/pages/AddInventoryPage";
+import { AddServicePage } from "./src/pages/AddServicePage";
 import { AddSalePage } from "./src/pages/AddSalePage";
 import { CustomerDetailPage } from "./src/pages/CustomerDetailPage";
 import { LoadingPage } from "./src/pages/LoadingPage";
@@ -29,8 +30,16 @@ import { ProductDetailPage } from "./src/pages/ProductDetailPage";
 import { RemindersPage } from "./src/pages/RemindersPage";
 import { SaleDetailPage } from "./src/pages/SaleDetailPage";
 import { UserDetailPage } from "./src/pages/UserDetailPage";
+import { SettingsPage } from "./src/pages/SettingsPage";
+import { SettingsAppearancePage } from "./src/pages/SettingsAppearancePage";
+import { SettingsNotificationsPage } from "./src/pages/SettingsNotificationsPage";
+import { SettingsSecurityPage } from "./src/pages/SettingsSecurityPage";
+import { SettingsAboutPage } from "./src/pages/SettingsAboutPage";
+import { SettingsDangerZonePage } from "./src/pages/SettingsDangerZonePage";
 import { queryClient } from "./src/lib/query";
 import { AuthProvider, useAuth } from "./src/providers/AuthProvider";
+import { ThemeProvider } from "./src/providers/ThemeProvider";
+import { AppLockProvider } from "./src/providers/AppLockProvider";
 
 import type { RootStackParamList } from "./src/types/navigation";
 
@@ -42,6 +51,7 @@ const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       MainTabs: "home",
       AddInventory: "inventory/form/:productId?",
+      AddService: "services/form/:serviceId?",
       ProductDetail: "inventory/product/:productId",
       AddSale: "sales/new",
       SaleDetail: "sales/detail/:saleId",
@@ -49,6 +59,12 @@ const linking: LinkingOptions<RootStackParamList> = {
       CustomerDetail: "customers/detail/:customerId",
       UserDetail: "profile",
       Reminders: "reminders",
+      Settings: "settings",
+      SettingsAppearance: "settings/appearance",
+      SettingsNotifications: "settings/notifications",
+      SettingsSecurity: "settings/security",
+      SettingsAbout: "settings/about",
+      SettingsDangerZone: "settings/account/delete",
     },
   },
 };
@@ -72,9 +88,11 @@ const MainTabsScreen = ({ navigation }: ScreenProps<"MainTabs">) => {
     <MainTabs
       session={session}
       onOpenProduct={(productId) => navigation.navigate("ProductDetail", { productId })}
+      onOpenService={(serviceId) => navigation.navigate("AddService", { serviceId })}
       onOpenSale={(saleId) => navigation.navigate("SaleDetail", { saleId })}
       onOpenCustomer={(customerId) => navigation.navigate("CustomerDetail", { customerId })}
       onOpenAddInventory={() => navigation.navigate("AddInventory")}
+      onOpenAddService={() => navigation.navigate("AddService")}
       onOpenAddSale={() => navigation.navigate("AddSale")}
       onOpenAddCustomer={() => navigation.navigate("AddCustomer")}
       onOpenReminders={() => navigation.navigate("Reminders")}
@@ -96,6 +114,15 @@ const AddInventoryScreen = ({ navigation, route }: ScreenProps<"AddInventory">) 
     onNavigate={() => {}}
     onRequestClose={() => navigation.goBack()}
     presentation="screen"
+  />
+);
+
+const AddServiceScreen = ({ navigation, route }: ScreenProps<"AddService">) => (
+  <AddServicePage
+    serviceId={route.params?.serviceId}
+    onBack={() => navigation.goBack()}
+    onCreated={() => navigation.goBack()}
+    onNavigate={() => {}}
   />
 );
 
@@ -167,6 +194,48 @@ const RemindersScreen = ({ navigation }: ScreenProps<"Reminders">) => (
   />
 );
 
+const SettingsScreenWrapper = ({ navigation }: ScreenProps<"Settings">) => (
+  <SettingsPage
+    onBack={() => navigation.goBack()}
+    onOpenProfile={() => navigation.navigate("UserDetail")}
+    onOpenAppearance={() => navigation.navigate("SettingsAppearance")}
+    onOpenNotifications={() => navigation.navigate("SettingsNotifications")}
+    onOpenSecurity={() => navigation.navigate("SettingsSecurity")}
+    onOpenAbout={() => navigation.navigate("SettingsAbout")}
+    onOpenDangerZone={() => navigation.navigate("SettingsDangerZone")}
+  />
+);
+
+const SettingsAppearanceScreen = ({
+  navigation,
+}: ScreenProps<"SettingsAppearance">) => (
+  <SettingsAppearancePage onBack={() => navigation.goBack()} />
+);
+
+const SettingsNotificationsScreen = ({
+  navigation,
+}: ScreenProps<"SettingsNotifications">) => (
+  <SettingsNotificationsPage onBack={() => navigation.goBack()} />
+);
+
+const SettingsSecurityScreen = ({
+  navigation,
+}: ScreenProps<"SettingsSecurity">) => (
+  <SettingsSecurityPage onBack={() => navigation.goBack()} />
+);
+
+const SettingsAboutScreen = ({
+  navigation,
+}: ScreenProps<"SettingsAbout">) => (
+  <SettingsAboutPage onBack={() => navigation.goBack()} />
+);
+
+const SettingsDangerZoneScreen = ({
+  navigation,
+}: ScreenProps<"SettingsDangerZone">) => (
+  <SettingsDangerZonePage onBack={() => navigation.goBack()} />
+);
+
 const AppNavigator = () => (
   <NavigationContainer linking={linking}>
     <Stack.Navigator
@@ -179,6 +248,7 @@ const AppNavigator = () => (
         options={{ animation: "none" }}
       />
       <Stack.Screen name="AddInventory" component={AddInventoryScreen} />
+      <Stack.Screen name="AddService" component={AddServiceScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="AddSale" component={AddSaleScreen} />
       <Stack.Screen name="SaleDetail" component={SaleDetailScreen} />
@@ -186,6 +256,24 @@ const AppNavigator = () => (
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <Stack.Screen name="UserDetail" component={UserDetailScreen} />
       <Stack.Screen name="Reminders" component={RemindersScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreenWrapper} />
+      <Stack.Screen
+        name="SettingsAppearance"
+        component={SettingsAppearanceScreen}
+      />
+      <Stack.Screen
+        name="SettingsNotifications"
+        component={SettingsNotificationsScreen}
+      />
+      <Stack.Screen
+        name="SettingsSecurity"
+        component={SettingsSecurityScreen}
+      />
+      <Stack.Screen name="SettingsAbout" component={SettingsAboutScreen} />
+      <Stack.Screen
+        name="SettingsDangerZone"
+        component={SettingsDangerZoneScreen}
+      />
     </Stack.Navigator>
   </NavigationContainer>
 );
@@ -207,14 +295,18 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <BottomSheetModalProvider>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
-          </BottomSheetModalProvider>
-        </QueryClientProvider>
-        <Toast position="bottom" bottomOffset={90} />
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <BottomSheetModalProvider>
+              <AuthProvider>
+                <AppLockProvider>
+                  <AppContent />
+                </AppLockProvider>
+              </AuthProvider>
+            </BottomSheetModalProvider>
+          </QueryClientProvider>
+          <Toast position="bottom" bottomOffset={90} />
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

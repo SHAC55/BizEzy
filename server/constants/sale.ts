@@ -3,6 +3,7 @@ import type { Prisma } from "../generated/prisma/client";
 export const saleItemSelect = {
   id: true,
   productId: true,
+  serviceId: true,
   quantity: true,
   unitPrice: true,
   totalAmount: true,
@@ -14,6 +15,16 @@ export const saleItemSelect = {
       category: true,
       sku: true,
       costPrice: true,
+    },
+  },
+  service: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      code: true,
+      costPrice: true,
+      durationMinutes: true,
     },
   },
 } satisfies Prisma.SaleItemSelect;

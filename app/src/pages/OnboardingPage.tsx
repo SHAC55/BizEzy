@@ -114,8 +114,8 @@ export const OnboardingPage = ({
               <View className="flex-row items-start justify-between">
                 <View className="rounded-[16px] bg-white px-3 py-2">
                   <Image
-                    source={authAssets.logoImage}
-                    style={{ height: 24, width: 96 }}
+                    source={authAssets.wordmark}
+                    style={{ height: 24, width: 50 }}
                     resizeMode="contain"
                   />
                 </View>

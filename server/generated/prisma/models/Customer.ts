@@ -534,10 +534,6 @@ export type FloatFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type CustomerCreateNestedOneWithoutSalesInput = {
   create?: Prisma.XOR<Prisma.CustomerCreateWithoutSalesInput, Prisma.CustomerUncheckedCreateWithoutSalesInput>
   connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutSalesInput

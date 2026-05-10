@@ -28,8 +28,8 @@ export const AuthenticatedPage = ({
     >
       <View className="flex-row items-center justify-between">
         <Image
-          source={authAssets.logoImage}
-          className="h-[34px] w-[110px]"
+          source={authAssets.wordmark}
+          className="h-[34px] w-[70px]"
           resizeMode="contain"
         />
         <Text className="text-xs font-bold text-blue-600">Mobile Session</Text>

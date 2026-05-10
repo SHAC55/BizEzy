@@ -3,11 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-<<<<<<< HEAD
-=======
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "postinstall": "npm run prisma:generate",
->>>>>>> dev
     "start": "bun run server.ts",
     "dev": "bun --watch server.ts"
   },
@@ -23,13 +20,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
-=======
     "@prisma/adapter-pg": "7.2.0",
     "@prisma/client": "7.2.0",
->>>>>>> dev
     "@types/express": "^5.0.6",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -37,13 +29,9 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-<<<<<<< HEAD
-    "prisma": "^7.2.0",
-=======
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "prisma": "7.2.0",
->>>>>>> dev
     "resend": "^6.6.0",
     "zod": "^4.3.4"
   }
