@@ -21,6 +21,7 @@ import type { AppRoute } from "../types/navigation";
 
 type DashboardPageProps = {
   onOpenAddInventory: () => void;
+  onOpenAddService: () => void;
   onOpenCustomers: () => void;
   onOpenInventory: () => void;
   onOpenSales: () => void;
@@ -57,6 +58,7 @@ const avatarColor = (n: string) => COLORS[n.charCodeAt(0) % COLORS.length];
 export const DashboardPage = ({
   onNavigate,
   onOpenAddInventory,
+  onOpenAddService,
   onOpenCustomers,
   onOpenInventory,
   onOpenSales,
@@ -276,10 +278,15 @@ export const DashboardPage = ({
             <Text className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-3 ml-1">
               Quick Actions
             </Text>
-            <View className="flex-row gap-3">
-              <ActionCard icon="add-shopping-cart" label="New Sale"  color="#059669" bg="#ECFDF5" onPress={onOpenSales} />
-              <ActionCard icon="inventory-2"        label="Add Stock" color="#6366F1" bg="#EEF2FF" onPress={onOpenAddInventory} />
-              <ActionCard icon="person-add"         label="Customer" color="#F59E0B" bg="#FEF3C7" onPress={onOpenCustomers} />
+            <View style={{ gap: 12 }}>
+              <View className="flex-row gap-3">
+                <ActionCard icon="add-shopping-cart" label="New Sale"   color="#059669" bg="#ECFDF5" onPress={onOpenSales} />
+                <ActionCard icon="handyman"          label="Add Service" color="#0D9488" bg="#CCFBF1" onPress={onOpenAddService} />
+              </View>
+              <View className="flex-row gap-3">
+                <ActionCard icon="inventory-2"       label="Add Stock"  color="#6366F1" bg="#EEF2FF" onPress={onOpenAddInventory} />
+                <ActionCard icon="person-add"        label="Customer"   color="#F59E0B" bg="#FEF3C7" onPress={onOpenCustomers} />
+              </View>
             </View>
           </View>
         </Animated.View>

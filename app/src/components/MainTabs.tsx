@@ -147,6 +147,7 @@ export const MainTabs = ({
             <DashboardPage
               session={session}
               onOpenAddInventory={onOpenAddInventory}
+              onOpenAddService={onOpenAddService}
               onOpenCustomers={onOpenAddCustomer}
               onOpenInventory={() => goToPage(1)}
               onOpenSales={onOpenAddSale}
