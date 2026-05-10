@@ -16,6 +16,7 @@ import {
   Download,
   Printer,
   Share2,
+  Wrench,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCreateSalePayment, useSale } from "../hooks/useSales";
@@ -60,6 +61,19 @@ const getStatusConfig = (status) => {
     },
   };
   return configs[status] || configs.pending;
+};
+
+// Helper: resolve item name, type, and metadata regardless of product/service
+const resolveItem = (item) => {
+  const isService = Boolean(item.service && !item.product);
+  const entity = item.product || item.service || {};
+  return {
+    isService,
+    name: entity.name || "Unknown Item",
+    category: item.product?.category || item.service?.category || null,
+    sku: item.product?.sku || null,
+    // services may expose duration or type — add more fields as your API supports
+  };
 };
 
 const SaleDetail = () => {
@@ -109,6 +123,17 @@ const SaleDetail = () => {
 
   const StatusIcon = getStatusConfig(sale.status).icon;
   const statusConfig = getStatusConfig(sale.status);
+
+  // Count products vs services for the summary chip
+  const productCount = sale.items.filter((i) => i.product).length;
+  const serviceCount = sale.items.filter((i) => i.service && !i.product).length;
+
+  const itemSummaryLabel = () => {
+    const parts = [];
+    if (productCount > 0) parts.push(`${productCount} product${productCount !== 1 ? "s" : ""}`);
+    if (serviceCount > 0) parts.push(`${serviceCount} service${serviceCount !== 1 ? "s" : ""}`);
+    return parts.join(", ") || `${sale.items.length} item${sale.items.length !== 1 ? "s" : ""}`;
+  };
 
   return (
     <div className="min-h-screen w-full bg-white p-4 md:ml-20 md:p-8 md:mt-0 mt-14">
@@ -179,7 +204,7 @@ const SaleDetail = () => {
                   <div className="rounded-xl bg-gray-50 p-3 border border-gray-100">
                     <p className="text-xs text-gray-500">Items</p>
                     <p className="mt-1 font-semibold text-gray-900">
-                      {sale.items.length} products
+                      {itemSummaryLabel()}
                     </p>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-3 border border-gray-100">
@@ -188,17 +213,9 @@ const SaleDetail = () => {
                       {formatCurrency(sale.paidAmount)}
                     </p>
                   </div>
-                  <div
-                    className={`rounded-xl p-3 border ${sale.dueAmount > 0 ? "bg-gray-50 border-gray-100" : "bg-gray-50 border-gray-100"}`}
-                  >
-                    <p
-                      className={`text-xs ${sale.dueAmount > 0 ? "text-gray-500" : "text-gray-500"}`}
-                    >
-                      Due
-                    </p>
-                    <p
-                      className={`mt-1 font-semibold ${sale.dueAmount > 0 ? "text-gray-900" : "text-gray-900"}`}
-                    >
+                  <div className="rounded-xl bg-gray-50 p-3 border border-gray-100">
+                    <p className="text-xs text-gray-500">Due</p>
+                    <p className="mt-1 font-semibold text-gray-900">
                       {formatCurrency(sale.dueAmount)}
                     </p>
                   </div>
@@ -215,54 +232,63 @@ const SaleDetail = () => {
                     Sold Items
                   </h2>
                   <span className="ml-auto text-sm text-gray-500">
-                    {sale.items.length} item{sale.items.length !== 1 ? "s" : ""}
+                    {itemSummaryLabel()}
                   </span>
                 </div>
               </div>
 
               <div className="divide-y divide-gray-100">
-                {sale.items.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="group hover:bg-gray-50 transition-colors p-4 md:p-5"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-start gap-3">
-                          <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-700">
-                            <Package className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {item.product.name}
-                            </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                              {item.product.category && (
-                                <span className="rounded-full bg-gray-100 px-2 py-0.5">
-                                  {item.product.category}
+                {sale.items.map((item) => {
+                  const { isService, name, category, sku } = resolveItem(item);
+                  const ItemIcon = isService ? Wrench : Package;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="group hover:bg-gray-50 transition-colors p-4 md:p-5"
+                    >
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-start gap-3">
+                            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-700 flex-shrink-0">
+                              <ItemIcon className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                {name}
+                              </p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                {/* Type badge */}
+                                <span className={`rounded-full px-2 py-0.5 font-medium ${isService ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-600"}`}>
+                                  {isService ? "Service" : "Product"}
                                 </span>
-                              )}
-                              {item.product.sku && (
-                                <span>SKU: {item.product.sku}</span>
-                              )}
+                                {category && (
+                                  <span className="rounded-full bg-gray-100 px-2 py-0.5">
+                                    {category}
+                                  </span>
+                                )}
+                                {sku && (
+                                  <span>SKU: {sku}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-between md:justify-end gap-6 md:gap-8">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">
-                            {item.quantity} × {formatCurrency(item.unitPrice)}
-                          </p>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(item.totalAmount)}
-                          </p>
+                        <div className="flex items-center justify-between md:justify-end gap-6 md:gap-8">
+                          <div className="text-right">
+                            <p className="text-sm text-gray-500">
+                              {item.quantity} × {formatCurrency(item.unitPrice)}
+                            </p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {formatCurrency(item.totalAmount)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

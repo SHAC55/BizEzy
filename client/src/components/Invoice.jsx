@@ -1,10 +1,21 @@
 import React, { forwardRef } from "react";
 import { useAuthContext } from "../context/AuthContext";
 
-const Invoice = forwardRef(({ sale }, ref) => {
-  const { user, isLoading } = useAuthContext();
+// Safely resolve name, category, sku and type from either a product or service item
+const resolveItem = (item) => {
+  const isService = Boolean(item.service && !item.product);
+  const entity = item.product || item.service || {};
+  return {
+    isService,
+    name: entity.name || "Unknown Item",
+    category: entity.category || null,
+    sku: item.product?.sku || null, // SKU is product-only
+  };
+};
 
-  console.log(user)
+const Invoice = forwardRef(({ sale }, ref) => {
+  const { user } = useAuthContext();
+
   const totalUnits = sale.items.reduce((s, i) => s + i.quantity, 0);
   const isPaid = sale.dueAmount <= 0;
   const issueDate = new Date(sale.createdAt);
@@ -37,7 +48,7 @@ const Invoice = forwardRef(({ sale }, ref) => {
               {invoiceBusiness.address || "Business address not added"}
               <br />
               <span className="text-gray-400">
-                Contact: {user.mobile || "-"}
+                Contact: {user?.mobile || "-"}
               </span>
               <br />
               <span className="text-gray-400">
@@ -167,35 +178,44 @@ const Invoice = forwardRef(({ sale }, ref) => {
               </tr>
             </thead>
             <tbody>
-              {sale.items.map((item, idx) => (
-                <tr key={item.id} className="border-b border-gray-100">
-                  <td className="py-4 px-2 text-gray-300 text-[11px]">
-                    {idx + 1}
-                  </td>
-                  <td className="py-4 px-2">
-                    <div className="font-semibold text-gray-900 mb-0.5">
-                      {item.product.name}
-                    </div>
-                    {item.product.category && (
-                      <div className="text-[10px] text-gray-400 tracking-[0.5px]">
-                        {item.product.category}
+              {sale.items.map((item, idx) => {
+                const { isService, name, category, sku } = resolveItem(item);
+                return (
+                  <tr key={item.id} className="border-b border-gray-100">
+                    <td className="py-4 px-2 text-gray-300 text-[11px]">
+                      {idx + 1}
+                    </td>
+                    <td className="py-4 px-2">
+                      <div className="font-semibold text-gray-900 mb-0.5">
+                        {name}
                       </div>
-                    )}
-                  </td>
-                  <td className="py-4 px-2 text-right text-gray-400">
-                    {item.product.sku || "—"}
-                  </td>
-                  <td className="py-4 px-2 text-right text-gray-600 font-semibold">
-                    {item.quantity}
-                  </td>
-                  <td className="py-4 px-2 text-right text-gray-500">
-                    ₹{fmt(item.unitPrice)}
-                  </td>
-                  <td className="py-4 px-2 text-right font-bold text-gray-900">
-                    ₹{fmt(item.totalAmount)}
-                  </td>
-                </tr>
-              ))}
+                      {/* Show category if present, or a "Service" label for services */}
+                      {category ? (
+                        <div className="text-[10px] text-gray-400 tracking-[0.5px]">
+                          {category}
+                        </div>
+                      ) : isService ? (
+                        <div className="text-[10px] text-gray-400 tracking-[0.5px]">
+                          Service
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="py-4 px-2 text-right text-gray-400">
+                      {/* SKU only applies to products; show — for services */}
+                      {sku || "—"}
+                    </td>
+                    <td className="py-4 px-2 text-right text-gray-600 font-semibold">
+                      {item.quantity}
+                    </td>
+                    <td className="py-4 px-2 text-right text-gray-500">
+                      ₹{fmt(item.unitPrice)}
+                    </td>
+                    <td className="py-4 px-2 text-right font-bold text-gray-900">
+                      ₹{fmt(item.totalAmount)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -258,24 +278,6 @@ const Invoice = forwardRef(({ sale }, ref) => {
             )}
           </div>
         </div>
-
-        {/* ── Terms ── */}
-        {/* <div className="px-11 pb-8">
-          <div className="border-t border-gray-200 pt-4">
-            <div className="text-[9px] tracking-[2.5px] uppercase text-gray-400 font-bold mb-2.5">
-              Terms &amp; Conditions
-            </div>
-            <div className="text-[11px] text-gray-400 leading-loose">
-              1. Payment is due within 15 days of the invoice date.
-              <br />
-              2. Please include the invoice number in your payment reference.
-              <br />
-              3. Goods once sold will not be taken back or exchanged.
-              <br />
-              4. Interest @18% p.a. will be charged on delayed payments.
-            </div>
-          </div>
-        </div> */}
 
         {/* ── Footer ── */}
         <div className="border-t border-gray-200 px-11 py-3.5 flex justify-between items-center bg-gray-50">
