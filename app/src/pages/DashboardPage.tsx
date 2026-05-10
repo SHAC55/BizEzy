@@ -404,7 +404,7 @@ const SaleRow = ({ sale, isLast }: { sale: DashboardSale; isLast: boolean }) => 
             </View>
           </View>
           <Text className="text-[10px] text-slate-400" numberOfLines={1}>
-            {sale.items?.slice(0, 2).map((i) => `${i.quantity}× ${i.product.name}`).join(" · ")}
+            {sale.items?.slice(0, 2).map((i) => `${i.quantity}× ${i.product?.name ?? i.service?.name ?? "Item"}`).join(" · ")}
             {(sale.items?.length ?? 0) > 2 ? ` +${sale.items.length - 2}` : ""} · {fmtDate(sale.createdAt)}
           </Text>
         </View>

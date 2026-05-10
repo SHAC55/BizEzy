@@ -49,10 +49,11 @@ export const generateInvoiceHTML = (sale: DashboardSale, user: User): string => 
     const lineGst = item.unitPrice > 0
       ? Math.round(((sale.gstRate ?? 0) / 100) * item.unitPrice * item.quantity * 100) / 100
       : 0;
+    const itemName = item.product?.name ?? item.service?.name ?? "Item";
     return `
     <tr>
       <td class="td-desc">
-        <div class="item-name">${item.product.name}</div>
+        <div class="item-name">${itemName}</div>
         ${(item as any).sku ? `<div class="item-sku">${(item as any).sku}</div>` : ""}
       </td>
       <td class="td-r">${fmt(item.unitPrice)}</td>

@@ -27,7 +27,11 @@ export type DashboardSaleItem = {
   product: {
     id: string;
     name: string;
-  };
+  } | null;
+  service: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 export type DashboardSale = {

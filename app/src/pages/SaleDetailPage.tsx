@@ -314,31 +314,35 @@ export const SaleDetailPage = ({
               <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">Products</Text>
 
               <View>
-                {sale.items.map((item, index) => (
-                  <View
-                    key={item.id}
-                    className={`flex-row items-center justify-between py-3.5 ${
-                      index < sale.items.length - 1 ? "border-b border-zinc-100" : ""
-                    }`}
-                  >
-                    <View className="flex-row items-center gap-3 flex-1 pr-3">
-                      <View className="h-9 w-9 rounded-xl bg-zinc-50 border border-zinc-100 items-center justify-center flex-shrink-0">
-                        <MaterialIcons name="inventory-2" size={14} color="#71717a" />
+                {sale.items.map((item, index) => {
+                  const isService = Boolean(item.service && !item.product);
+                  const itemName = item.product?.name ?? item.service?.name ?? "Unknown Item";
+                  return (
+                    <View
+                      key={item.id}
+                      className={`flex-row items-center justify-between py-3.5 ${
+                        index < sale.items.length - 1 ? "border-b border-zinc-100" : ""
+                      }`}
+                    >
+                      <View className="flex-row items-center gap-3 flex-1 pr-3">
+                        <View className="h-9 w-9 rounded-xl bg-zinc-50 border border-zinc-100 items-center justify-center flex-shrink-0">
+                          <MaterialIcons name={isService ? "build" : "inventory-2"} size={14} color="#71717a" />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-zinc-900 font-semibold text-[13px]" numberOfLines={1}>
+                            {itemName}
+                          </Text>
+                          <Text className="text-zinc-400 text-[12px] mt-0.5">
+                            {item.quantity} × {formatCurrency(item.unitPrice)}
+                          </Text>
+                        </View>
                       </View>
-                      <View className="flex-1">
-                        <Text className="text-zinc-900 font-semibold text-[13px]" numberOfLines={1}>
-                          {item.product.name}
-                        </Text>
-                        <Text className="text-zinc-400 text-[12px] mt-0.5">
-                          {item.quantity} × {formatCurrency(item.unitPrice)}
-                        </Text>
-                      </View>
+                      <Text className="text-zinc-900 font-bold text-[14px]">
+                        {formatCurrency(item.quantity * item.unitPrice)}
+                      </Text>
                     </View>
-                    <Text className="text-zinc-900 font-bold text-[14px]">
-                      {formatCurrency(item.quantity * item.unitPrice)}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </View>
 
