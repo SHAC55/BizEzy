@@ -1,11 +1,23 @@
 import React from "react";
-import { Users, CreditCard, Boxes, ArrowRight } from "lucide-react";
+import { Users, CreditCard, Boxes, Wrench, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const DashboardQuickActions = () => {
   const navigate = useNavigate();
 
   const actions = [
+    {
+      name: "Add Sale",
+      icon: CreditCard,
+      path: "/add-transaction",
+      description: "Record transaction",
+    },
+    {
+      name: "Add Service",
+      icon: Wrench,
+      path: "/add-service",
+      description: "Define a new service",
+    },
     {
       name: "Add Inventory",
       icon: Boxes,
@@ -17,12 +29,6 @@ const DashboardQuickActions = () => {
       icon: Users,
       path: "/add-customer",
       description: "Register new client",
-    },
-    {
-      name: "Add Sale",
-      icon: CreditCard,
-      path: "/add-transaction",
-      description: "Record transaction",
     },
   ];
 
@@ -56,14 +62,14 @@ const DashboardQuickActions = () => {
           </div>
 
           {/* RIGHT BUTTONS */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex gap-3 w-full lg:w-auto">
             {actions.map((act, idx) => {
               const Icon = act.icon;
               return (
                 <button
                   key={idx}
                   onClick={() => navigate(act.path)}
-                  className="group relative overflow-hidden rounded-2xl border border-gray-900 bg-gray-900 p-5 text-left transition-all duration-200 hover:border-gray-200 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 w-full lg:w-[148px]"
+                  className="group relative overflow-hidden rounded-2xl border border-gray-900 bg-gray-900 p-5 text-left transition-all duration-200 hover:border-gray-200 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 w-full lg:w-[140px]"
                 >
                   {/* White fill sweeps in on hover */}
                   <div className="absolute inset-0 bg-white scale-y-0 origin-bottom group-hover:scale-y-100 transition-transform duration-300 ease-out rounded-2xl" />
