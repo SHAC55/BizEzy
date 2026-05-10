@@ -115,8 +115,8 @@ export const AuthPage = () => {
                 <View className="flex-row items-center justify-between px-5 pt-5">
                   <View className="rounded-[16px] bg-white/95 px-3 py-2">
                     <Image
-                      source={authAssets.logoImage}
-                      style={{ height: 22, width: 92 }}
+                      source={authAssets.wordmark}
+                      style={{ height: 22, width: 46 }}
                       resizeMode="contain"
                     />
                   </View>
