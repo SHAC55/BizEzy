@@ -10,6 +10,7 @@ const defaults: CookieOptions = {
   sameSite: isProd ? "none" : "lax",
   httpOnly: true,
   secure: isProd,
+  ...(isProd ? { domain: ".bizezy.in" } : {}),
 };
 
 export const getAccessTokenCookieOptions = (): CookieOptions => ({
