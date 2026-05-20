@@ -4,6 +4,7 @@ import { inventoryMovementSelect } from "../constants/inventoryMovement";
 import { productSelect } from "../constants/product";
 import { CONFLICT, NOT_FOUND } from "../constants/http";
 import appAssert from "../utils/appAssert";
+import { fireLowStockAlert } from "../utils/sendLowStockAlert";
 
 export type CreateProductParams = {
   userId: number;
@@ -66,7 +67,9 @@ const getOwnedProduct = async (userId: number, productId: string) => {
     select: {
       id: true,
       businessId: true,
+      name: true,
       quantity: true,
+      minimumQuantity: true,
       sku: true,
     },
   });
@@ -343,7 +346,7 @@ export const updateProduct = async (data: UpdateProductParams) => {
     );
   }
 
-  return prisma.$transaction(async (transaction) => {
+  const updatedProduct = await prisma.$transaction(async (transaction) => {
     const updatedProduct = await transaction.product.update({
       where: { id: product.id },
       data: {
@@ -376,6 +379,23 @@ export const updateProduct = async (data: UpdateProductParams) => {
 
     return updatedProduct;
   });
+
+  if (
+    data.quantity !== undefined &&
+    product.quantity > product.minimumQuantity &&
+    updatedProduct.quantity <= updatedProduct.minimumQuantity
+  ) {
+    fireLowStockAlert(product.businessId, [
+      {
+        name: updatedProduct.name,
+        quantity: updatedProduct.quantity,
+        minimumQuantity: updatedProduct.minimumQuantity,
+        sku: updatedProduct.sku,
+      },
+    ]);
+  }
+
+  return updatedProduct;
 };
 
 export const getLowStockProducts = async (
@@ -425,7 +445,7 @@ export const adjustProductStock = async (data: AdjustStockParams) => {
     quantityAfter = data.quantity;
   }
 
-  return prisma.$transaction(async (transaction) => {
+  const result = await prisma.$transaction(async (transaction) => {
     const updatedProduct = await transaction.product.update({
       where: { id: product.id },
       data: {
@@ -453,6 +473,22 @@ export const adjustProductStock = async (data: AdjustStockParams) => {
       movement,
     };
   });
+
+  if (
+    product.quantity > product.minimumQuantity &&
+    result.product.quantity <= result.product.minimumQuantity
+  ) {
+    fireLowStockAlert(product.businessId, [
+      {
+        name: result.product.name,
+        quantity: result.product.quantity,
+        minimumQuantity: result.product.minimumQuantity,
+        sku: result.product.sku,
+      },
+    ]);
+  }
+
+  return result;
 };
 
 export const getProductMovements = async (userId: number, productId: string) => {

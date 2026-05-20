@@ -523,3 +523,141 @@ export const getVerifyEmailTemplate = (url: string) => ({
 </body>
 </html>`,
 });
+
+type LowStockItem = {
+  name: string;
+  quantity: number;
+  minimumQuantity: number;
+  sku?: string | null;
+};
+
+export const getLowStockAlertTemplate = ({
+  businessName,
+  ownerName,
+  items,
+}: {
+  businessName: string;
+  ownerName?: string | null;
+  items: LowStockItem[];
+}) => {
+  const greeting = ownerName ? `Hi ${ownerName},` : "Hi there,";
+  const itemCount = items.length;
+  const headline =
+    itemCount === 1
+      ? "1 product is running low on stock"
+      : `${itemCount} products are running low on stock`;
+
+  const rowsHtml = items
+    .map((item) => {
+      const isOut = item.quantity <= 0;
+      const status = isOut ? "OUT OF STOCK" : "LOW";
+      const statusColor = isOut ? "#B91C1C" : "#B45309";
+      const statusBg = isOut ? "#FEE2E2" : "#FEF3C7";
+      const skuLine = item.sku
+        ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px;">SKU: ${item.sku}</div>`
+        : "";
+      return `
+        <tr>
+          <td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;">
+            <div style="font-size:15px;font-weight:600;color:#0f172a;">${item.name}</div>
+            ${skuLine}
+          </td>
+          <td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;text-align:center;font-size:14px;color:#1e293b;font-weight:600;">
+            ${item.quantity}
+          </td>
+          <td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;text-align:center;font-size:14px;color:#64748b;">
+            ${item.minimumQuantity}
+          </td>
+          <td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;text-align:right;">
+            <span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0.6px;background:${statusBg};color:${statusColor};">
+              ${status}
+            </span>
+          </td>
+        </tr>`;
+    })
+    .join("");
+
+  const textLines = items
+    .map(
+      (item) =>
+        `- ${item.name}${item.sku ? ` (SKU: ${item.sku})` : ""}: ${item.quantity} left (minimum ${item.minimumQuantity})`,
+    )
+    .join("\n");
+
+  return {
+    subject: `Low Stock Alert — ${businessName}`,
+    text: `${greeting}
+
+${headline} at ${businessName}. Please restock soon to avoid running out.
+
+${textLines}
+
+— Bizezy`,
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Low Stock Alert</title>
+</head>
+<body style="margin:0;padding:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;-webkit-font-smoothing:antialiased;">
+  <div style="background:linear-gradient(135deg,#f97316 0%,#dc2626 100%);padding:40px 20px;">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+
+      <div style="background:linear-gradient(135deg,#f97316 0%,#dc2626 100%);padding:36px 30px;text-align:center;">
+        <div style="display:inline-block;width:64px;height:64px;line-height:64px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.32);border-radius:50%;margin-bottom:16px;font-size:28px;font-weight:800;color:#ffffff;">
+          !
+        </div>
+        <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.3px;">
+          Low Stock Alert
+        </h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.92);font-size:14px;">
+          ${businessName}
+        </p>
+      </div>
+
+      <div style="padding:40px 36px 24px;">
+        <p style="margin:0 0 8px;font-size:15px;color:#1e293b;font-weight:600;">${greeting}</p>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#475569;">
+          ${headline} at <strong style="color:#0f172a;">${businessName}</strong>.
+          Below is the list of products that have reached or fallen below your minimum stock threshold.
+          Please restock them soon to keep your sales running smoothly.
+        </p>
+
+        <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th align="left" style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Product</th>
+              <th align="center" style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">In Stock</th>
+              <th align="center" style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Minimum</th>
+              <th align="right" style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:0.8px;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div style="margin-top:28px;padding:18px 20px;background:#fff7ed;border-left:4px solid #f97316;border-radius:8px;">
+          <p style="margin:0;font-size:13px;color:#7c2d12;line-height:1.6;">
+            <strong style="display:block;margin-bottom:4px;color:#7c2d12;">Tip</strong>
+            Open Bizezy and head to Inventory to update stock levels or place a restock order with your supplier.
+          </p>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc;padding:24px 36px;text-align:center;border-top:1px solid #e2e8f0;">
+        <p style="margin:0;font-size:13px;color:#64748b;line-height:1.6;">
+          You're receiving this because you're the registered owner of <strong style="color:#1e293b;">${businessName}</strong> on Bizezy.
+        </p>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8;">
+          © ${new Date().getFullYear()} Bizezy. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>`,
+  };
+};

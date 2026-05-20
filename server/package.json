@@ -6,7 +6,10 @@
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "postinstall": "npm run prisma:generate",
     "start": "bun run server.ts",
-    "dev": "bun --watch server.ts"
+    "dev": "bun --watch server.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:setup": "DATABASE_URL=$DATABASE_URL_TEST prisma migrate deploy --schema prisma/schema.prisma"
   },
   "private": true,
   "devDependencies": {

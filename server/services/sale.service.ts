@@ -4,6 +4,7 @@ import { inventoryMovementSelect } from "../constants/inventoryMovement";
 import { CONFLICT, NOT_FOUND } from "../constants/http";
 import { saleDetailSelect, saleListSelect } from "../constants/sale";
 import appAssert from "../utils/appAssert";
+import { fireLowStockAlert } from "../utils/sendLowStockAlert";
 
 export type CreateSaleParams = {
   userId: number;
@@ -218,6 +219,7 @@ export const createSale = async (data: CreateSaleParams) => {
             id: true,
             businessId: true,
             name: true,
+            sku: true,
             quantity: true,
             minimumQuantity: true,
           },
@@ -293,19 +295,36 @@ export const createSale = async (data: CreateSaleParams) => {
       quantity: number;
       minimumQuantity: number;
     }> = [];
+    let crossedItems: Array<{
+      name: string;
+      quantity: number;
+      minimumQuantity: number;
+      sku: string | null;
+    }> = [];
 
     for (const item of productItems) {
       const product = productMap.get(item.productId);
       appAssert(product, NOT_FOUND, "product not found");
 
       const quantityAfter = product.quantity - item.quantity;
+      const wasAboveThreshold = product.quantity > product.minimumQuantity;
+      const isAtOrBelowThreshold = quantityAfter <= product.minimumQuantity;
 
-      if (quantityAfter <= product.minimumQuantity) {
+      if (isAtOrBelowThreshold) {
         lowStockItems.push({
           name: product.name,
           quantity: quantityAfter,
           minimumQuantity: product.minimumQuantity,
         });
+
+        if (wasAboveThreshold) {
+          crossedItems.push({
+            name: product.name,
+            quantity: quantityAfter,
+            minimumQuantity: product.minimumQuantity,
+            sku: product.sku,
+          });
+        }
       }
 
       await transaction.product.update({
@@ -338,8 +357,10 @@ export const createSale = async (data: CreateSaleParams) => {
       });
     }
 
-    return { saleId: sale.id, lowStockItems };
+    return { saleId: sale.id, lowStockItems, crossedItems };
   });
+
+  fireLowStockAlert(business.id, result.crossedItems);
 
   const finalSale = await getSaleById(data.userId, result.saleId);
   return { sale: finalSale, lowStockProducts: result.lowStockItems };

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react
 import { useQueryClient } from "@tanstack/react-query";
 import {
   BackHandler, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView, Text, TextInput, View, ActivityIndicator, Linking,
+  Pressable, ScrollView, Text, TextInput, View, ActivityIndicator,
   Animated as RNAnimated, Easing,
 } from "react-native";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
@@ -430,16 +430,6 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
       await sleep(900);
 
       Toast.show({ type: "success", text1: "Sale Created! 🎉", text2: `${fmt(total)} recorded.` });
-
-      if ((res.lowStockProducts?.length ?? 0) > 0 && session?.user?.mobile) {
-        setTimeout(async () => {
-          const list  = res.lowStockProducts!.map((p: any) => `- ${p.name} (Left: ${p.quantity}, Min: ${p.minimumQuantity})`).join("\n");
-          const msg   = `🚨 *Low Stock Alert*\n\n${list}\n\nPlease restock soon.`;
-          const digits = session.user!.mobile!.replace(/\D/g, "");
-          const phone  = digits.startsWith("91") && digits.length >= 12 ? digits : `91${digits}`;
-          try { await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`); } catch {}
-        }, 500);
-      }
 
       onCreated(res.sale.id);
     } catch (err) {

@@ -174,9 +174,7 @@ export const SettingsNotificationsPage = ({
           tag="Coming soon"
         />
         <Divider />
-        <ChannelRow icon="mail" label="Email" tag="Coming soon" />
-        <Divider />
-        <ChannelRow icon="chat" label="WhatsApp" tag="Active" tagTone="success" />
+        <ChannelRow icon="mail" label="Email" tag="Active" tagTone="success" />
       </Section>
 
       <View style={{ height: 24 }} />
