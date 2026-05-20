@@ -380,11 +380,25 @@ export const updateProduct = async (data: UpdateProductParams) => {
     return updatedProduct;
   });
 
+  console.log("[updateProduct] quantity check", {
+    productId: product.id,
+    name: updatedProduct.name,
+    quantityProvided: data.quantity,
+    quantityBefore: product.quantity,
+    quantityAfter: updatedProduct.quantity,
+    minimumBefore: product.minimumQuantity,
+    minimumAfter: updatedProduct.minimumQuantity,
+    wasAbove: product.quantity > product.minimumQuantity,
+    isAtOrBelow:
+      updatedProduct.quantity <= updatedProduct.minimumQuantity,
+  });
+
   if (
     data.quantity !== undefined &&
     product.quantity > product.minimumQuantity &&
     updatedProduct.quantity <= updatedProduct.minimumQuantity
   ) {
+    console.log("[updateProduct] crossing detected, firing alert");
     fireLowStockAlert(product.businessId, [
       {
         name: updatedProduct.name,
@@ -393,6 +407,8 @@ export const updateProduct = async (data: UpdateProductParams) => {
         sku: updatedProduct.sku,
       },
     ]);
+  } else {
+    console.log("[updateProduct] no crossing, skipping alert");
   }
 
   return updatedProduct;
