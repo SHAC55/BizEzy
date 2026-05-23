@@ -19,16 +19,14 @@ const emptySummary = {
   totalServices: 0,
   averagePrice: 0,
   projectedMargin: 0,
-  categories: [],
 };
 
 export const useServices = (params = {}) => {
-  const { page = 1, limit = 10, category = "", search = "" } = params;
+  const { page = 1, limit = 10, search = "" } = params;
   const deferredSearch = useDeferredValue(search);
   const queryParams = {
     page,
     limit,
-    category,
     search: deferredSearch,
   };
 

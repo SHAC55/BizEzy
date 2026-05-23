@@ -2,7 +2,6 @@ import React, { useDeferredValue, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Clock,
   Edit2,
   Search,
   Tag,
@@ -16,14 +15,6 @@ import { useDeleteService, useServices } from "../hooks/useServices";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
 
-const formatDuration = (minutes) => {
-  if (!minutes && minutes !== 0) return "—";
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-};
-
 const initialsFor = (name) =>
   name
     .split(" ")
@@ -35,7 +26,6 @@ const InventoryServices = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
 
   const deferredSearch = useDeferredValue(search);
 
@@ -43,7 +33,6 @@ const InventoryServices = () => {
     useServices({
       page,
       limit: 10,
-      category,
       search: deferredSearch,
     });
 
@@ -53,7 +42,6 @@ const InventoryServices = () => {
     totalServices = 0,
     averagePrice = 0,
     projectedMargin = 0,
-    categories = [],
   } = summary;
 
   const handleDeleteService = async (serviceId) => {
@@ -144,7 +132,7 @@ const InventoryServices = () => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Search name, category or code…"
+                placeholder="Search name or code…"
                 className="w-full pl-9 pr-8 py-2 rounded-xl border border-black/10 bg-white text-sm text-black placeholder:text-black/30 focus:outline-none focus:border-black/25 focus:ring-2 focus:ring-black/5 transition-all"
               />
               {search && (
@@ -160,21 +148,6 @@ const InventoryServices = () => {
               )}
             </div>
 
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2 rounded-xl border border-black/10 bg-white text-sm text-black focus:outline-none focus:border-black/25 focus:ring-2 focus:ring-black/5 transition-all"
-            >
-              <option value="">All categories</option>
-              {categories.map((item) => (
-                <option key={item.category} value={item.category}>
-                  {item.category} ({item.count})
-                </option>
-              ))}
-            </select>
           </div>
 
           {error && (
@@ -191,21 +164,15 @@ const InventoryServices = () => {
                   {[
                     "Service",
                     "Code",
-                    "Category",
                     "Cost",
                     "Selling",
                     "Margin",
-                    "Duration",
                     "Actions",
                   ].map((h, i) => (
                     <th
                       key={h}
                       className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-widest whitespace-nowrap ${
-                        i >= 3 && i <= 6
-                          ? "text-right"
-                          : i === 7
-                            ? "text-right"
-                            : "text-left"
+                        i >= 2 ? "text-right" : "text-left"
                       }`}
                     >
                       {h}
@@ -216,7 +183,7 @@ const InventoryServices = () => {
               <tbody className="divide-y divide-black/5">
                 {isLoading ? (
                   <tr>
-                    <td colSpan="8" className="py-14 text-center">
+                    <td colSpan="6" className="py-14 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-7 h-7 rounded-full border-2 border-black/10 border-t-black/50 animate-spin" />
                         <span className="text-xs text-black/30">
@@ -227,7 +194,7 @@ const InventoryServices = () => {
                   </tr>
                 ) : services.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="py-16 text-center">
+                    <td colSpan="6" className="py-16 text-center">
                       <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-3">
                         <Wrench className="w-5 h-5 text-black/20" />
                       </div>
@@ -255,11 +222,6 @@ const InventoryServices = () => {
                               <p className="text-sm font-semibold text-black">
                                 {service.name}
                               </p>
-                              {service.description && (
-                                <p className="text-[11px] text-black/40 mt-0.5 max-w-xs truncate">
-                                  {service.description}
-                                </p>
-                              )}
                             </div>
                           </div>
                         </td>
@@ -269,17 +231,6 @@ const InventoryServices = () => {
                           <span className="text-xs font-mono text-black/40">
                             {service.code || "—"}
                           </span>
-                        </td>
-
-                        {/* Category */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {service.category ? (
-                            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-black/5 text-black/50">
-                              {service.category}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-black/25">—</span>
-                          )}
                         </td>
 
                         {/* Cost */}
@@ -302,14 +253,6 @@ const InventoryServices = () => {
                             className={`text-sm font-semibold ${margin >= 0 ? "text-[#15803D]" : "text-[#BE123C]"}`}
                           >
                             ₹{margin}
-                          </span>
-                        </td>
-
-                        {/* Duration */}
-                        <td className="px-4 py-3 whitespace-nowrap text-right">
-                          <span className="inline-flex items-center gap-1 text-xs text-black/55">
-                            <Clock className="w-3 h-3" />
-                            {formatDuration(service.durationMinutes)}
                           </span>
                         </td>
 
@@ -381,12 +324,6 @@ const InventoryServices = () => {
                           )}
                         </div>
                       </div>
-                      {service.durationMinutes ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-black/55 px-2.5 py-1 rounded-full bg-black/5 flex-shrink-0">
-                          <Clock className="w-3 h-3" />
-                          {formatDuration(service.durationMinutes)}
-                        </span>
-                      ) : null}
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 mb-3">
@@ -418,14 +355,7 @@ const InventoryServices = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      {service.category ? (
-                        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-black/5 text-black/40">
-                          {service.category}
-                        </span>
-                      ) : (
-                        <span />
-                      )}
+                    <div className="flex items-center justify-end">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() =>
