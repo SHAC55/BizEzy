@@ -21,10 +21,8 @@ export const saleItemSelect = {
     select: {
       id: true,
       name: true,
-      category: true,
       code: true,
       costPrice: true,
-      durationMinutes: true,
     },
   },
 } satisfies Prisma.SaleItemSelect;

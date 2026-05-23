@@ -24,14 +24,6 @@ import type { Service } from "../types/service";
 const fmt = (v: number) =>
   `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-const formatDuration = (minutes: number | null) => {
-  if (!minutes && minutes !== 0) return "—";
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-};
-
 const initials = (n: string) =>
   n
     .split(" ")
@@ -48,7 +40,6 @@ export const InventoryServicesPanel = ({ onOpenService }: Props) => {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
 
   const debouncedSearch = useDebounce(search);
   const {
@@ -62,7 +53,6 @@ export const InventoryServicesPanel = ({ onOpenService }: Props) => {
   } = useServicesData({
     page,
     limit: 10,
-    category,
     search: debouncedSearch,
   });
 
@@ -192,30 +182,6 @@ export const InventoryServicesPanel = ({ onOpenService }: Props) => {
         ) : null}
       </View>
 
-      {/* Category chips */}
-      {summary.categories.length > 0 && (
-        <View className="flex-row flex-wrap gap-2 mb-3">
-          <Chip
-            active={!category}
-            label="All"
-            onPress={() => {
-              setCategory("");
-              setPage(1);
-            }}
-          />
-          {summary.categories.map((c) => (
-            <Chip
-              key={c.category ?? "uncat"}
-              active={category === c.category}
-              label={`${c.category ?? "Uncategorized"} (${c.count})`}
-              onPress={() => {
-                setCategory(c.category ?? "");
-                setPage(1);
-              }}
-            />
-          ))}
-        </View>
-      )}
     </Animated.View>
   );
 
@@ -339,24 +305,14 @@ export const InventoryServicesPanel = ({ onOpenService }: Props) => {
             </View>
 
             <View className="flex-1">
-              <View className="flex-row items-center gap-2 mb-0.5">
-                <Text
-                  className="text-[14px] font-semibold text-slate-900 flex-shrink"
-                  numberOfLines={1}
-                >
-                  {service.name}
-                </Text>
-                {service.durationMinutes ? (
-                  <View className="flex-row items-center gap-1 rounded-full px-2 py-0.5 bg-indigo-50">
-                    <MaterialIcons name="schedule" size={10} color="#6366F1" />
-                    <Text className="text-[9px] font-bold text-indigo-700">
-                      {formatDuration(service.durationMinutes)}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+              <Text
+                className="text-[14px] font-semibold text-slate-900 mb-0.5"
+                numberOfLines={1}
+              >
+                {service.name}
+              </Text>
               <Text className="text-[11px] text-slate-400" numberOfLines={1}>
-                {service.category ?? service.code ?? "Service"}
+                {service.code ?? "Service"}
               </Text>
             </View>
 
@@ -402,24 +358,3 @@ export const InventoryServicesPanel = ({ onOpenService }: Props) => {
   );
 };
 
-const Chip = ({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) => (
-  <Pressable
-    onPress={onPress}
-    android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
-    className={`rounded-full px-3.5 py-1.5 border ${active ? "bg-slate-900 border-slate-900" : "bg-white border-slate-200"}`}
-  >
-    <Text
-      className={`text-[11px] font-semibold ${active ? "text-white" : "text-slate-600"}`}
-    >
-      {label}
-    </Text>
-  </Pressable>
-);

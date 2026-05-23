@@ -322,7 +322,6 @@ export const fetchServices = (
   params: {
     page: number;
     limit: number;
-    category?: string;
     search?: string;
   },
 ) =>
@@ -330,7 +329,6 @@ export const fetchServices = (
     `/services?${createQueryString({
       page: params.page,
       limit: params.limit,
-      category: params.category ?? "",
       search: params.search ?? "",
     })}`,
     {

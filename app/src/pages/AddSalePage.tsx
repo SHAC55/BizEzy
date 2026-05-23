@@ -653,8 +653,7 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
                         <View className="flex-1">
                           <Text className="text-white text-[14px] font-semibold">{svc.name}</Text>
                           <Text className="text-slate-400 text-[10px] mt-0.5">
-                            {svc.code ?? svc.category ?? "Service"}
-                            {svc.durationMinutes ? ` · ${svc.durationMinutes} min` : ""}
+                            {svc.code ?? "Service"}
                           </Text>
                         </View>
                         <Pressable onPress={() => updateItem(idx, { serviceId: "", price: "0" })}>
@@ -685,7 +684,6 @@ export const AddSalePage = ({ onBack, onCreated, onNavigate }: AddSalePageProps)
                                   <Text className="text-[13px] font-semibold text-slate-700">{s.name}</Text>
                                   <Text className="text-[10px] text-slate-400 mt-0.5">
                                     ₹{s.price}
-                                    {s.durationMinutes ? ` · ${s.durationMinutes} min` : ""}
                                   </Text>
                                 </Pressable>
                               ))}

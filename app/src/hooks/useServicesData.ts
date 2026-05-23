@@ -12,29 +12,26 @@ const emptySummary: ServicesSummary = {
   totalServices: 0,
   averagePrice: 0,
   projectedMargin: 0,
-  categories: [],
 };
 
 export const useServicesData = ({
   page = 1,
   limit = 10,
-  category = "",
   search = "",
 }: {
   page?: number;
   limit?: number;
-  category?: string;
   search?: string;
 }) => {
   const { session } = useAuth();
   const accessToken = session?.tokens.accessToken;
 
   const query = useQuery({
-    queryKey: queryKeys.services.list({ page, limit, category, search }),
+    queryKey: queryKeys.services.list({ page, limit, search }),
     enabled: Boolean(accessToken),
     placeholderData: keepPreviousData,
     queryFn: () =>
-      fetchServices(accessToken!, { page, limit, category, search }),
+      fetchServices(accessToken!, { page, limit, search }),
   });
 
   return {

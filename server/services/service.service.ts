@@ -8,11 +8,8 @@ export type CreateServiceParams = {
   userId: number;
   name: string;
   code?: string;
-  description?: string;
-  category?: string;
   costPrice: number;
   price: number;
-  durationMinutes?: number;
 };
 
 export type UpdateServiceParams = {
@@ -20,18 +17,14 @@ export type UpdateServiceParams = {
   serviceId: string;
   name?: string;
   code?: string | null;
-  description?: string | null;
-  category?: string | null;
   costPrice?: number;
   price?: number;
-  durationMinutes?: number | null;
 };
 
 export type GetServicesParams = {
   userId: number;
   page?: number;
   limit?: number;
-  category?: string;
   search?: string;
 };
 
@@ -110,11 +103,8 @@ export const createService = async (data: CreateServiceParams) => {
       businessId: business.id,
       name: data.name,
       code,
-      description: data.description,
-      category: data.category,
       costPrice: data.costPrice,
       price: data.price,
-      durationMinutes: data.durationMinutes,
     },
     select: serviceSelect,
   });
@@ -128,13 +118,10 @@ export const getServices = async (data: GetServicesParams) => {
 
   const where: Prisma.ServiceWhereInput = {
     businessId: business.id,
-    ...(data.category && { category: data.category }),
     ...(data.search && {
       OR: [
         { name: { contains: data.search, mode: "insensitive" } },
-        { category: { contains: data.search, mode: "insensitive" } },
         { code: { contains: data.search, mode: "insensitive" } },
-        { description: { contains: data.search, mode: "insensitive" } },
       ],
     }),
   };
@@ -171,13 +158,6 @@ export const getServices = async (data: GetServicesParams) => {
     );
   }
 
-  const categoryCounts = await prisma.service.groupBy({
-    by: ["category"],
-    where: { businessId: business.id, NOT: { category: null } },
-    _count: { category: true },
-    orderBy: { category: "asc" },
-  });
-
   return {
     services,
     pagination: {
@@ -190,10 +170,6 @@ export const getServices = async (data: GetServicesParams) => {
       totalServices: summary.totalServices,
       averagePrice: summary.averagePrice,
       projectedMargin: Number(summary.projectedMargin.toFixed(2)),
-      categories: categoryCounts.map((item) => ({
-        category: item.category,
-        count: item._count.category,
-      })),
     },
   };
 };
@@ -230,15 +206,8 @@ export const updateService = async (data: UpdateServiceParams) => {
     data: {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.code !== undefined && { code: data.code ?? null }),
-      ...(data.description !== undefined && {
-        description: data.description ?? null,
-      }),
-      ...(data.category !== undefined && { category: data.category ?? null }),
       ...(data.costPrice !== undefined && { costPrice: data.costPrice }),
       ...(data.price !== undefined && { price: data.price }),
-      ...(data.durationMinutes !== undefined && {
-        durationMinutes: data.durationMinutes ?? null,
-      }),
     },
     select: serviceSelect,
   });

@@ -34,24 +34,18 @@ type AddServicePageProps = {
 
 type FormState = {
   name: string;
-  category: string;
   code: string;
-  description: string;
   costPrice: string;
   price: string;
-  durationMinutes: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 const initialForm: FormState = {
   name: "",
-  category: "",
   code: "",
-  description: "",
   costPrice: "",
   price: "",
-  durationMinutes: "",
 };
 
 const generateCode = (name: string) => {
@@ -78,12 +72,6 @@ const validate = (form: FormState): FormErrors => {
     const n = Number(form.costPrice);
     if (Number.isNaN(n) || n < 0)
       errors.costPrice = "Enter a valid non-negative number";
-  }
-
-  if (form.durationMinutes.trim()) {
-    const n = Number(form.durationMinutes);
-    if (Number.isNaN(n) || !Number.isInteger(n) || n < 0 || n > 1440)
-      errors.durationMinutes = "Enter minutes between 0 and 1440";
   }
 
   return errors;
@@ -117,13 +105,9 @@ export const AddServicePage = ({
         if (cancelled) return;
         setForm({
           name: data.name ?? "",
-          category: data.category ?? "",
           code: data.code ?? "",
-          description: data.description ?? "",
           costPrice: data.costPrice != null ? String(data.costPrice) : "",
           price: data.price != null ? String(data.price) : "",
-          durationMinutes:
-            data.durationMinutes != null ? String(data.durationMinutes) : "",
         });
       } finally {
         if (!cancelled) setLoadingExisting(false);
@@ -175,11 +159,6 @@ export const AddServicePage = ({
       costPrice: form.costPrice.trim() ? Number(form.costPrice) : 0,
     };
     if (form.code.trim()) payload.code = form.code.trim();
-    if (form.category.trim()) payload.category = form.category.trim();
-    if (form.description.trim())
-      payload.description = form.description.trim();
-    if (form.durationMinutes.trim())
-      payload.durationMinutes = Number(form.durationMinutes);
 
     setSubmitting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -252,8 +231,8 @@ export const AddServicePage = ({
                 </Text>
                 <Text className="text-[13px] text-slate-400 mt-0.5">
                   {isEdit
-                    ? "Update name, pricing or details"
-                    : "Pricing, duration and description"}
+                    ? "Update name, code or pricing"
+                    : "Name, code and pricing"}
                 </Text>
               </View>
               <View className="h-12 w-12 rounded-2xl bg-indigo-50 items-center justify-center">
@@ -276,14 +255,6 @@ export const AddServicePage = ({
                   onChangeText={(v) => updateField("name", v)}
                   placeholder="e.g. Haircut, Phone repair"
                   error={errors.name}
-                />
-
-                <Field
-                  label="Category (optional)"
-                  icon="category"
-                  value={form.category}
-                  onChangeText={(v) => updateField("category", v)}
-                  placeholder="e.g. Salon, Repair"
                 />
 
                 <View>
@@ -316,24 +287,6 @@ export const AddServicePage = ({
                   </Text>
                 </View>
 
-                <View>
-                  <Text className="text-[10px] font-semibold text-slate-400 mb-1.5 ml-1 uppercase tracking-wider">
-                    Description (optional)
-                  </Text>
-                  <View className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3">
-                    <TextInput
-                      value={form.description}
-                      onChangeText={(v) => updateField("description", v)}
-                      placeholder="What's included in this service?"
-                      placeholderTextColor="#CBD5E1"
-                      multiline
-                      numberOfLines={3}
-                      textAlignVertical="top"
-                      className="text-[14px] text-slate-900 min-h-[60px]"
-                    />
-                  </View>
-                </View>
-
                 <View className="flex-row gap-3">
                   <View className="flex-1">
                     <Field
@@ -359,15 +312,6 @@ export const AddServicePage = ({
                   </View>
                 </View>
 
-                <Field
-                  label="Duration (minutes)"
-                  icon="schedule"
-                  value={form.durationMinutes}
-                  onChangeText={(v) => updateField("durationMinutes", v)}
-                  placeholder="e.g. 30"
-                  keyboardType="number-pad"
-                  error={errors.durationMinutes}
-                />
               </Card>
 
               <Pressable

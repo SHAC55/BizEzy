@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Calculator,
   Check,
-  Clock,
   DollarSign,
   Loader2,
   Package,
@@ -728,12 +727,6 @@ const AddTransaction = () => {
                                     {errors.items[index].serviceId.message}
                                   </p>
                                 )}
-                                {selectedService?.durationMinutes ? (
-                                  <p className="mt-2 inline-flex items-center gap-1 text-xs text-gray-500">
-                                    <Clock className="h-3 w-3" />
-                                    {selectedService.durationMinutes} min
-                                  </p>
-                                ) : null}
                               </>
                             ) : (
                               <>

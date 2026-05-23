@@ -40,7 +40,6 @@ export const getServicesHandler = catchErrors(async (req, res) => {
     userId,
     page: query.page,
     limit: query.limit,
-    category: query.category,
     search: query.search,
   });
 

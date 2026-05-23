@@ -63,7 +63,6 @@ export const queryKeys = {
     list: (params: {
       page: number;
       limit: number;
-      category: string;
       search: string;
     }) => ["services", "list", params] as const,
     detail: (serviceId: string) => ["services", "detail", serviceId] as const,
