@@ -1,39 +1,14 @@
 import LoadingTips from "./LoadingTips";
 
-export default function PageLoader() {
+export default function PageLoader({ pageName = "Dashboard" }) {
   return (
     <div className="relative flex flex-col w-full md:ml-24 items-center justify-center min-h-screen bg-white">
-      {/* Floating bubbles animation - uncomment if needed */}
-      {/* <div className="absolute inset-0 overflow-hidden">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-gradient-to-r from-blue-200/40 to-sky-200/40 animate-float"
-            style={{
-              width: `${Math.random() * 100 + 20}px`,
-              height: `${Math.random() * 100 + 20}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${8 + Math.random() * 7}s`,
-            }}
-          />
-        ))}
-      </div> */}
-
-      {/* Decorative waves at bottom - uncomment if needed */}
-      {/* <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
-        <svg className="relative w-full h-32 text-blue-200/30" viewBox="0 0 1200 120" preserveAspectRatio="none">
-          <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="currentColor"/>
-        </svg>
-      </div> */}
-
       {/* Main loader container */}
       <div className="relative z-10 flex flex-col items-center justify-center p-8 max-w-md mx-4">
         {/* Loading text with creative styling */}
         <div className="text-center space-y-3">
           <h2 className="text-2xl font-bold text-black">
-            Preparing Your Dashboard
+            Preparing {pageName}
           </h2>
 
           {/* <p className="text-blue-500/70 text-sm">Please wait while we get everything ready</p> */}

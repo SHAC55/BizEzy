@@ -87,12 +87,19 @@ const SaleDetail = () => {
 
   const invoiceRef = useRef();
 
+  // const handlePrint = useReactToPrint({
+  //   contentRef: invoiceRef,
+  // });
   const handlePrint = useReactToPrint({
-    contentRef: invoiceRef,
-  });
+  contentRef: invoiceRef,
+  documentTitle: `Invoice-${sale.id}`,
+  onAfterPrint: () => {
+    console.log("Printed");
+  },
+});
 
   if (isLoading) {
-    return <PageLoader />;
+    return <PageLoader pageName="Sale Detail" />;
   }
 
   const handleAddPayment = async (event) => {

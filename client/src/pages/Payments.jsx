@@ -44,7 +44,7 @@ const Payments = () => {
       });
   }, [sales, dueFilter, date]);
 
-  if (isLoading) return <PageLoader />;
+  if (isLoading) return <PageLoader pageName="Payments" />;
 
   const totalDue = dueSales.reduce((sum, sale) => sum + sale.dueAmount, 0);
   const highDueCount = dueSales.filter((sale) => sale.dueAmount > 10000).length;

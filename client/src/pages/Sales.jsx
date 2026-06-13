@@ -148,7 +148,7 @@ const Sales = () => {
   const hasActiveFilters = searchInput !== "" || statusFilter !== "all";
   const isSearching = searchInput !== searchTerm; // typing but not yet debounced
 
-  if (isLoading && !sales?.length) return <PageLoader />;
+  if (isLoading && !sales?.length) return <PageLoader pageName="Sales" />;
 
   if (error) {
     return (

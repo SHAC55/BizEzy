@@ -50,7 +50,7 @@ export default function LoadingTips() {
                     Did you know?
                   </span>
                   <div className="h-1 w-1 bg-black-300 rounded-full"></div>
-                  {/* <span className="text-xs text-gray-400">💡 Tip</span> */}
+                  
                 </div>
                 
                 <p key={index} className="text-sm font-semibold text-gray-700 leading-relaxed">
