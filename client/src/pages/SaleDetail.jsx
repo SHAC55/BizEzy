@@ -87,9 +87,15 @@ const SaleDetail = () => {
 
   const invoiceRef = useRef();
 
+  // const handlePrint = useReactToPrint({
+  //   contentRef: invoiceRef,
+  // });
+
   const handlePrint = useReactToPrint({
-    contentRef: invoiceRef,
-  });
+  contentRef: invoiceRef,
+  onBeforePrint: () =>
+    new Promise((resolve) => setTimeout(resolve, 300)), // give iOS time to render
+});
 
   if (isLoading) {
     return <PageLoader pageName="Sale Detail" />;
