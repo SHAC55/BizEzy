@@ -3,11 +3,8 @@ import { useForm } from "react-hook-form";
 import {
   ArrowLeft,
   ArrowRight,
-  Clock,
   DollarSign,
-  FileText,
   Hash,
-  Tag,
   Wrench,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -62,12 +59,9 @@ const AddServiceForm = () => {
   } = useForm({
     defaultValues: {
       name: "",
-      category: "",
       code: "",
-      description: "",
       costPrice: "",
       price: "",
-      durationMinutes: "",
     },
   });
 
@@ -82,12 +76,9 @@ const AddServiceForm = () => {
     if (!service) return;
     reset({
       name: service.name ?? "",
-      category: service.category ?? "",
       code: service.code ?? "",
-      description: service.description ?? "",
       costPrice: service.costPrice ?? 0,
       price: service.price ?? "",
-      durationMinutes: service.durationMinutes ?? "",
     });
   }, [service, reset]);
 
@@ -100,16 +91,6 @@ const AddServiceForm = () => {
 
     const code = data.code?.trim();
     if (code) payload.code = code;
-
-    const category = data.category?.trim();
-    if (category) payload.category = category;
-
-    const description = data.description?.trim();
-    if (description) payload.description = description;
-
-    if (data.durationMinutes !== "" && data.durationMinutes !== null) {
-      payload.durationMinutes = Number(data.durationMinutes);
-    }
 
     if (isEditMode) {
       await updateService(serviceId, payload);
@@ -199,23 +180,6 @@ const AddServiceForm = () => {
                 )}
               </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Category
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Tag className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    {...register("category")}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all"
-                    placeholder="e.g. Salon, Repair, Consulting"
-                  />
-                </div>
-              </div>
-
               {/* Code with regenerate */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -245,26 +209,8 @@ const AddServiceForm = () => {
                 </p>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Description
-                </label>
-                <div className="relative">
-                  <div className="absolute top-3 left-3 pointer-events-none">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <textarea
-                    rows={3}
-                    {...register("description")}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all resize-none"
-                    placeholder="What's included in this service?"
-                  />
-                </div>
-              </div>
-
               {/* Pricing grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Cost Price
@@ -330,41 +276,6 @@ const AddServiceForm = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Duration (min)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="number"
-                      step="1"
-                      {...register("durationMinutes", {
-                        min: {
-                          value: 0,
-                          message: "Duration cannot be negative",
-                        },
-                        max: {
-                          value: 1440,
-                          message: "Duration must fit in a day",
-                        },
-                      })}
-                      className={`w-full pl-9 pr-3 py-2.5 bg-white border rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all appearance-none ${
-                        errors.durationMinutes
-                          ? "border-red-400 focus:ring-red-200 focus:border-red-500"
-                          : "border-gray-300 focus:ring-gray-200 focus:border-gray-500"
-                      }`}
-                      placeholder="e.g. 30"
-                    />
-                  </div>
-                  {errors.durationMinutes && (
-                    <p className="text-red-500 text-xs mt-1.5">
-                      {errors.durationMinutes.message}
-                    </p>
-                  )}
-                </div>
               </div>
             </div>
 

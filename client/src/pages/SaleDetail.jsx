@@ -70,7 +70,7 @@ const resolveItem = (item) => {
   return {
     isService,
     name: entity.name || "Unknown Item",
-    category: item.product?.category || item.service?.category || null,
+    category: item.product?.category || null,
     sku: item.product?.sku || null,
     // services may expose duration or type — add more fields as your API supports
   };
