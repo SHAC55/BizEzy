@@ -80,7 +80,7 @@ export const DashboardPage = ({
     return (
       <AppLayout currentRoute="dashboard" onNavigate={onNavigate} subtitle="Preparing your workspace." title="Dashboard">
         <View className="flex-1 items-center justify-center gap-3">
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color="#0F172A" />
           <Text style={{ fontSize: 13, color: "#94A3B8" }}>Loading dashboard…</Text>
         </View>
       </AppLayout>
