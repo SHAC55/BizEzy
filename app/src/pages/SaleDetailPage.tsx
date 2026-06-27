@@ -37,10 +37,28 @@ const formatDate = (value: string) =>
     year: "numeric",
   });
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  paid:    { label: "Paid",           bg: "bg-emerald-50",  text: "text-emerald-700", dot: "bg-emerald-500" },
-  partial: { label: "Partial",        bg: "bg-amber-50",    text: "text-amber-700",   dot: "bg-amber-500"   },
-  unpaid:  { label: "Unpaid",         bg: "bg-red-50",      text: "text-red-700",     dot: "bg-red-500"     },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; bg: string; text: string; dot: string }
+> = {
+  paid: {
+    label: "Paid",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    dot: "bg-emerald-500",
+  },
+  partial: {
+    label: "Partial",
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    dot: "bg-amber-500",
+  },
+  unpaid: {
+    label: "Unpaid",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    dot: "bg-red-500",
+  },
 };
 
 export const SaleDetailPage = ({
@@ -71,33 +89,50 @@ export const SaleDetailPage = ({
     }
   };
 
-  useEffect(() => { loadSale(); }, [saleId]);
+  useEffect(() => {
+    loadSale();
+  }, [saleId]);
 
   const handlePayment = async () => {
     const token = session?.tokens.accessToken;
     if (!token || !sale) return;
     const amount = Number(paymentAmount);
     if (!paymentAmount.trim() || isNaN(amount) || amount <= 0) {
-      Toast.show({ type: "error", text1: "Invalid Amount", text2: "Enter a valid positive amount." });
+      Toast.show({
+        type: "error",
+        text1: "Invalid Amount",
+        text2: "Enter a valid positive amount.",
+      });
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsPaying(true);
     try {
-      const updated = await createSalePayment(token, sale.id, Number(paymentAmount));
+      const updated = await createSalePayment(
+        token,
+        sale.id,
+        Number(paymentAmount),
+      );
       setSale(updated);
       setPaymentAmount("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.sales.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.sales.detail(sale.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.sales.detail(sale.id),
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.customers.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ]);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Toast.show({ type: "success", text1: "Payment Recorded", text2: `₹${paymentAmount} added to this sale.` });
+      Toast.show({
+        type: "success",
+        text1: "Payment Recorded",
+        text2: `₹${paymentAmount} added to this sale.`,
+      });
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const msg = err instanceof Error ? err.message : "Failed to record payment";
+      const msg =
+        err instanceof Error ? err.message : "Failed to record payment";
       Toast.show({ type: "error", text1: "Payment Failed", text2: msg });
     } finally {
       setIsPaying(false);
@@ -106,15 +141,16 @@ export const SaleDetailPage = ({
 
   const handleInvoice = () => {
     if (!sale || !session?.user) return;
-    
+
     const business = session.user.business;
     if (!business?.gstNumber || !business?.address) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Toast.show({ 
-        type: "error", 
-        text1: "Profile Incomplete", 
-        text2: "Please complete your profile by adding GST number and Shop Address to generate invoices.",
-        visibilityTime: 4000
+      Toast.show({
+        type: "error",
+        text1: "Profile Incomplete",
+        text2:
+          "Please complete your profile by adding GST number and Shop Address to generate invoices.",
+        visibilityTime: 4000,
       });
       return;
     }
@@ -131,21 +167,28 @@ export const SaleDetailPage = ({
     try {
       const reminder = await fetchSaleReminder(token, sale.id);
       const digits = reminder.customerMobile.replace(/\D/g, "");
-      const phone = digits.startsWith("91") && digits.length >= 12 ? digits : `91${digits}`;
+      const phone =
+        digits.startsWith("91") && digits.length >= 12 ? digits : `91${digits}`;
       const url = `https://wa.me/${phone}?text=${encodeURIComponent(reminder.message)}`;
       await Linking.openURL(url);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Toast.show({ type: "success", text1: "Reminder Ready", text2: reminder.reminderLabel });
+      Toast.show({
+        type: "success",
+        text1: "Reminder Ready",
+        text2: reminder.reminderLabel,
+      });
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const msg = err instanceof Error ? err.message : "Could not open reminder";
+      const msg =
+        err instanceof Error ? err.message : "Could not open reminder";
       Toast.show({ type: "error", text1: "Reminder Failed", text2: msg });
     } finally {
       setIsSendingReminder(false);
     }
   };
 
-  const statusCfg = STATUS_CONFIG[sale?.status ?? "unpaid"] ?? STATUS_CONFIG.unpaid;
+  const statusCfg =
+    STATUS_CONFIG[sale?.status ?? "unpaid"] ?? STATUS_CONFIG.unpaid;
 
   return (
     <AppLayout
@@ -159,7 +202,10 @@ export const SaleDetailPage = ({
         contentContainerClassName="px-4 pt-3 pb-32"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => loadSale(true)} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadSale(true)}
+          />
         }
       >
         {/* ── Top Action Bar ── */}
@@ -169,17 +215,28 @@ export const SaleDetailPage = ({
             android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: false }}
             className="flex-row items-center gap-1.5 bg-white border border-zinc-200 px-4 py-3 rounded-2xl"
           >
-            <MaterialIcons name="arrow-back-ios-new" size={14} color="#18181b" />
-            <Text className="text-zinc-900 font-semibold text-[13px]">Back</Text>
+            <MaterialIcons
+              name="arrow-back-ios-new"
+              size={14}
+              color="#18181b"
+            />
+            <Text className="text-zinc-900 font-semibold text-[13px]">
+              Back
+            </Text>
           </Pressable>
 
           <Pressable
             onPress={handleInvoice}
-            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: false }}
+            android_ripple={{
+              color: "rgba(255,255,255,0.15)",
+              borderless: false,
+            }}
             className="flex-1 flex-row items-center justify-center gap-2 bg-zinc-900 px-4 py-3 rounded-2xl"
           >
             <MaterialIcons name="receipt-long" size={16} color="#fff" />
-            <Text className="text-white font-semibold text-[13px]">Download Invoice</Text>
+            <Text className="text-white font-semibold text-[13px]">
+              Download Invoice
+            </Text>
           </Pressable>
         </View>
 
@@ -188,12 +245,17 @@ export const SaleDetailPage = ({
           <Pressable
             onPress={handleReminder}
             disabled={isSendingReminder}
-            android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: false }}
+            android_ripple={{
+              color: "rgba(255,255,255,0.1)",
+              borderless: false,
+            }}
             className="flex-row items-center justify-center gap-2 bg-[#25D366] rounded-2xl px-4 py-3 mb-4"
           >
             <FontAwesome5 name="whatsapp" size={16} color="#fff" />
             <Text className="text-white font-semibold text-[13px]">
-              {isSendingReminder ? "Opening WhatsApp…" : "Send Payment Reminder"}
+              {isSendingReminder
+                ? "Opening WhatsApp…"
+                : "Send Payment Reminder"}
             </Text>
           </Pressable>
         )}
@@ -201,12 +263,16 @@ export const SaleDetailPage = ({
         {loading ? (
           <View className="py-24 items-center justify-center">
             <ActivityIndicator size="large" color="#18181b" />
-            <Text className="text-zinc-400 text-[13px] mt-3">Loading sale…</Text>
+            <Text className="text-zinc-400 text-[13px] mt-3">
+              Loading sale…
+            </Text>
           </View>
         ) : !sale ? (
           <View className="py-24 items-center">
             <MaterialIcons name="error-outline" size={40} color="#ef4444" />
-            <Text className="text-red-500 mt-3 font-medium">Sale not found</Text>
+            <Text className="text-red-500 mt-3 font-medium">
+              Sale not found
+            </Text>
           </View>
         ) : (
           <>
@@ -236,21 +302,35 @@ export const SaleDetailPage = ({
                 </View>
 
                 {/* Status pill */}
-                <View className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full ${statusCfg.bg}`}>
-                  <View className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                  <Text className={`text-[11px] font-bold ${statusCfg.text}`}>{statusCfg.label}</Text>
+                <View
+                  className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full ${statusCfg.bg}`}
+                >
+                  <View
+                    className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`}
+                  />
+                  <Text className={`text-[11px] font-bold ${statusCfg.text}`}>
+                    {statusCfg.label}
+                  </Text>
                 </View>
               </View>
 
               {/* Amount row */}
               <View className="flex-row gap-3">
                 <View className="flex-1 bg-white/8 rounded-2xl px-4 py-3">
-                  <Text className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Total</Text>
-                  <Text className="text-white text-[20px] font-bold">{formatCurrency(sale.totalAmount)}</Text>
+                  <Text className="text-white/40 text-[10px] uppercase tracking-widest mb-1">
+                    Total
+                  </Text>
+                  <Text className="text-white text-[20px] font-bold">
+                    {formatCurrency(sale.totalAmount)}
+                  </Text>
                 </View>
                 <View className="flex-1 bg-white/8 rounded-2xl px-4 py-3">
-                  <Text className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Balance Due</Text>
-                  <Text className={`text-[20px] font-bold ${sale.dueAmount > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                  <Text className="text-white/40 text-[10px] uppercase tracking-widest mb-1">
+                    Balance Due
+                  </Text>
+                  <Text
+                    className={`text-[20px] font-bold ${sale.dueAmount > 0 ? "text-red-400" : "text-emerald-400"}`}
+                  >
                     {formatCurrency(sale.dueAmount)}
                   </Text>
                 </View>
@@ -259,7 +339,9 @@ export const SaleDetailPage = ({
 
             {/* ── Customer Card ── */}
             <View className="bg-white rounded-[24px] border border-zinc-100 px-5 py-4 mb-3">
-              <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">Customer</Text>
+              <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-3">
+                Customer
+              </Text>
               <View className="flex-row items-center gap-3">
                 <View className="h-10 w-10 rounded-xl bg-zinc-900 items-center justify-center">
                   <Text className="text-white text-[14px] font-bold">
@@ -267,9 +349,12 @@ export const SaleDetailPage = ({
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-zinc-900 text-[15px] font-semibold">{sale.customer.name}</Text>
+                  <Text className="text-zinc-900 text-[15px] font-semibold">
+                    {sale.customer.name}
+                  </Text>
                   <Text className="text-zinc-400 text-[12px] mt-0.5">
-                    Paid {formatCurrency(sale.paidAmount)} of {formatCurrency(sale.totalAmount)}
+                    Paid {formatCurrency(sale.paidAmount)} of{" "}
+                    {formatCurrency(sale.totalAmount)}
                   </Text>
                 </View>
                 {/* Progress bar */}
@@ -277,7 +362,9 @@ export const SaleDetailPage = ({
                   <View className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                     <View
                       className="h-full bg-zinc-900 rounded-full"
-                      style={{ width: `${Math.min(100, (sale.paidAmount / sale.totalAmount) * 100)}%` }}
+                      style={{
+                        width: `${Math.min(100, (sale.paidAmount / sale.totalAmount) * 100)}%`,
+                      }}
                     />
                   </View>
                   <Text className="text-zinc-400 text-[10px] mt-1 text-right">
@@ -289,47 +376,75 @@ export const SaleDetailPage = ({
 
             {/* ── Bill Summary ── */}
             <View className="bg-white rounded-[24px] border border-zinc-100 px-5 py-4 mb-3">
-              <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">Bill Summary</Text>
+              <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">
+                Bill Summary
+              </Text>
 
               <View className="gap-2">
-                <BillRow label="Subtotal" value={formatCurrency(sale.subtotalAmount)} />
+                <BillRow
+                  label="Subtotal"
+                  value={formatCurrency(sale.subtotalAmount)}
+                />
                 {sale.discountAmount > 0 && (
-                  <BillRow label="Discount" value={`− ${formatCurrency(sale.discountAmount)}`} accent="green" />
+                  <BillRow
+                    label="Discount"
+                    value={`− ${formatCurrency(sale.discountAmount)}`}
+                    accent="green"
+                  />
                 )}
                 {sale.gstAmount > 0 && (
-                  <BillRow label={`GST (${sale.gstRate}%)`} value={formatCurrency(sale.gstAmount)} />
+                  <BillRow
+                    label={`GST (${sale.gstRate}%)`}
+                    value={formatCurrency(sale.gstAmount)}
+                  />
                 )}
               </View>
 
               <View className="my-3 h-px bg-zinc-100" />
 
               <View className="flex-row justify-between items-center">
-                <Text className="text-zinc-900 text-[14px] font-bold">Total</Text>
-                <Text className="text-zinc-900 text-[20px] font-bold">{formatCurrency(sale.totalAmount)}</Text>
+                <Text className="text-zinc-900 text-[14px] font-bold">
+                  Total
+                </Text>
+                <Text className="text-zinc-900 text-[20px] font-bold">
+                  {formatCurrency(sale.totalAmount)}
+                </Text>
               </View>
             </View>
 
             {/* ── Products ── */}
             <View className="bg-white rounded-[24px] border border-zinc-100 px-5 py-4 mb-3">
-              <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">Products</Text>
+              <Text className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">
+                Products
+              </Text>
 
               <View>
                 {sale.items.map((item, index) => {
                   const isService = Boolean(item.service && !item.product);
-                  const itemName = item.product?.name ?? item.service?.name ?? "Unknown Item";
+                  const itemName =
+                    item.product?.name ?? item.service?.name ?? "Unknown Item";
                   return (
                     <View
                       key={item.id}
                       className={`flex-row items-center justify-between py-3.5 ${
-                        index < sale.items.length - 1 ? "border-b border-zinc-100" : ""
+                        index < sale.items.length - 1
+                          ? "border-b border-zinc-100"
+                          : ""
                       }`}
                     >
                       <View className="flex-row items-center gap-3 flex-1 pr-3">
                         <View className="h-9 w-9 rounded-xl bg-zinc-50 border border-zinc-100 items-center justify-center flex-shrink-0">
-                          <MaterialIcons name={isService ? "build" : "inventory-2"} size={14} color="#71717a" />
+                          <MaterialIcons
+                            name={isService ? "build" : "inventory-2"}
+                            size={14}
+                            color="#71717a"
+                          />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-zinc-900 font-semibold text-[13px]" numberOfLines={1}>
+                          <Text
+                            className="text-zinc-900 font-semibold text-[13px]"
+                            numberOfLines={1}
+                          >
                             {itemName}
                           </Text>
                           <Text className="text-zinc-400 text-[12px] mt-0.5">
@@ -378,29 +493,47 @@ export const SaleDetailPage = ({
                 )}
               </View>
 
-              <Pressable
-                onPress={handlePayment}
-                disabled={isPaying || !paymentAmount}
-                android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: false }}
-                className="rounded-2xl py-4 items-center flex-row justify-center gap-2"
-                style={({ pressed }) => ({
-                  backgroundColor: isPaying || !paymentAmount ? "#e4e4e7" : "#18181b",
-                  opacity: pressed && !isPaying && !!paymentAmount ? 0.75 : 1,
-                  transform: [{ scale: pressed && !isPaying && !!paymentAmount ? 0.97 : 1 }],
-                })}
-              >
-                {isPaying ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <MaterialIcons name="add-circle-outline" size={18} color={!paymentAmount ? "#a1a1aa" : "#fff"} />
-                )}
-                <Text
-                  className="font-semibold text-[14px]"
-                  style={{ color: isPaying || !paymentAmount ? "#a1a1aa" : "#ffffff" }}
-                >
-                  {isPaying ? "Recording…" : "Add Payment"}
-                </Text>
-              </Pressable>
+              {(() => {
+                const isDisabled = isPaying || !paymentAmount.trim();
+                return (
+                  <Pressable
+                    onPress={handlePayment}
+                    disabled={isDisabled}
+                    android_ripple={{
+                      color: "rgba(255,255,255,0.15)",
+                      borderless: false,
+                    }}
+                    style={{
+                      borderRadius: 16,
+                      paddingVertical: 16,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 8,
+                      backgroundColor: isDisabled ? "#d4d4d8" : "#18181b",
+                    }}
+                  >
+                    {isPaying ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <MaterialIcons
+                        name="add-circle-outline"
+                        size={18}
+                        color={isDisabled ? "#71717a" : "#fff"}
+                      />
+                    )}
+                    <Text
+                      style={{
+                        color: isDisabled ? "#71717a" : "#ffffff",
+                        fontWeight: "600",
+                        fontSize: 14,
+                      }}
+                    >
+                      {isPaying ? "Recording…" : "Add Payment"}
+                    </Text>
+                  </Pressable>
+                );
+              })()}
             </View>
           </>
         )}
@@ -422,7 +555,9 @@ const BillRow = ({
 }) => (
   <View className="flex-row items-center justify-between">
     <Text className="text-zinc-500 text-[13px]">{label}</Text>
-    <Text className={`text-[13px] font-semibold ${accent === "green" ? "text-emerald-600" : "text-zinc-800"}`}>
+    <Text
+      className={`text-[13px] font-semibold ${accent === "green" ? "text-emerald-600" : "text-zinc-800"}`}
+    >
       {value}
     </Text>
   </View>

@@ -92,10 +92,9 @@ const SaleDetail = () => {
   // });
 
   const handlePrint = useReactToPrint({
-  contentRef: invoiceRef,
-  onBeforePrint: () =>
-    new Promise((resolve) => setTimeout(resolve, 300)), // give iOS time to render
-});
+    contentRef: invoiceRef,
+    onBeforePrint: () => new Promise((resolve) => setTimeout(resolve, 300)), // give iOS time to render
+  });
 
   if (isLoading) {
     return <PageLoader pageName="Sale Detail" />;
@@ -136,9 +135,14 @@ const SaleDetail = () => {
 
   const itemSummaryLabel = () => {
     const parts = [];
-    if (productCount > 0) parts.push(`${productCount} product${productCount !== 1 ? "s" : ""}`);
-    if (serviceCount > 0) parts.push(`${serviceCount} service${serviceCount !== 1 ? "s" : ""}`);
-    return parts.join(", ") || `${sale.items.length} item${sale.items.length !== 1 ? "s" : ""}`;
+    if (productCount > 0)
+      parts.push(`${productCount} product${productCount !== 1 ? "s" : ""}`);
+    if (serviceCount > 0)
+      parts.push(`${serviceCount} service${serviceCount !== 1 ? "s" : ""}`);
+    return (
+      parts.join(", ") ||
+      `${sale.items.length} item${sale.items.length !== 1 ? "s" : ""}`
+    );
   };
 
   return (
@@ -265,7 +269,9 @@ const SaleDetail = () => {
                               </p>
                               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                                 {/* Type badge */}
-                                <span className={`rounded-full px-2 py-0.5 font-medium ${isService ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-600"}`}>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 font-medium ${isService ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-600"}`}
+                                >
                                   {isService ? "Service" : "Product"}
                                 </span>
                                 {category && (
@@ -273,9 +279,7 @@ const SaleDetail = () => {
                                     {category}
                                   </span>
                                 )}
-                                {sku && (
-                                  <span>SKU: {sku}</span>
-                                )}
+                                {sku && <span>SKU: {sku}</span>}
                               </div>
                             </div>
                           </div>
